@@ -1,12 +1,12 @@
 Package: QdRant
 Type: Package
-Title: What the Package Does (Title Case)
+Title: An easy way to manage your Qdrant DB in R. 
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
-License: What license is it under?
+Author: Ethan Armstrong
+Maintainer: Ethan Armstrong <ethangarmstrong@gmail.com>
+Description: This package streamlines interacting with the Qdrant API.
+    All functionality is intended to be replicated. 
+License: MIT
 Encoding: UTF-8
 LazyData: true
 Imports:
