@@ -1,5 +1,7 @@
 # QdRant
-An easy way for R users to interact with Qdrant's vector database
+An easy way for R users to interact with Qdrant's vector database.  
+
+Work in progress and help appreciated! =) 
 
 
 
@@ -7,10 +9,6 @@ An easy way for R users to interact with Qdrant's vector database
 
 ```r
 library(QdRant)
-
-number_of_embeddings <- 768
-vector_body          <- 'TBD'
-input_text           <- 'How to of quantum circuits' 
 
 my_client  <- QdrantClient$new(my_host, my_port, my_api_key)
 collection <- Collection$new(my_client)
