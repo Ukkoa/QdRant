@@ -15,11 +15,16 @@ Points <- R6::R6Class("Points",
 
                            },
 
-                           retrieve_points = function(collection_name, ids){
+                           retrieve_points = function(collection_name, with_vector = F, with_payload = T, shard_keys = NULL, id_list){
 
-                             url <- paste0(self$client$get_base_url(), '/collections/', collection_name, '/points', id)
-                             body <- list(ids = ids)
-                             return(self$client$make_request("POST", url))
+                             url  <- paste0(self$client$get_base_url(), '/collections/', collection_name, '/points')
+                             body <-
+                               list(with_vector = with_vector,
+                                    with_payload = with_payload,
+                                    shard_keys = shard_keys,
+                                    ids = id_list)
+
+                             return(self$client$make_request("POST", url, body = body))
 
                            },
 
@@ -62,9 +67,9 @@ Points <- R6::R6Class("Points",
 
                            ,
 
-                           delete_points_by_id = function(collection_name, ids){
-                            url <- paste0(self$client$get_base_url(), '/collections/', collection_name, '/points/delete', id)
-                            body <- list(points = ids)
+                           delete_points_by_id = function(collection_name, id_list){
+                            url <- paste0(self$client$get_base_url(), '/collections/', collection_name, '/points/delete')
+                            body <- list(points = id_list)
                             return(self$client$make_request("POST", url))
 
                            },
