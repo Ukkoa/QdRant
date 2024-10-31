@@ -1,6 +1,8 @@
 # QdRant
 An easy way for R users to interact with Qdrant's vector database
 
+
+
 ## Getting Started
 
 ```r
@@ -11,22 +13,33 @@ vector_body          <- 'TBD'
 input_text           <- 'How to of quantum circuits' 
 
 my_client  <- QdrantClient$new(my_host, my_port, my_api_key)
+collection <- Collection$new(my_client)
+points     <- Points$new(my_client)
+services   <- Services$new(my_client)
 
 ## Collections
 
-collection <- Collection$new(my_client)
 collection$create('test_collection', number_of_embeddings)
 collection$detail('test_collection')
 collection$list()
 collection$exists('test_collection')
 collection$delete('test_collection')
 
-## Vectors
+## Points
 
-vector <- VectorManager$new(my_client)
-vectors$insert_vectors('test_collection', vector_body))
-closest_point    <- vectors$search_vectors('test_collection', get_nomic_embedding(input_text), limit = 1)
-closest_document <- vectors$get_vector('test_collection', closest_point$result[[1]]$id)
+points$retrieve_point('my_collection', id)
+points$retrieve_points('my_collection', with_vector = F, with_payload = T, shard_keys = NULL, ids = list('30627340-1d9b-43a3-b4ed-1574076311f1'))
+
+## Services
+
+services$kubernetes_readiness_probe()
+services$kubernetes_liveness_probe()
+services$kubernetes_health_check()
+services$set_write_protection()
+services$check_write_protection()
+services$collect_prometheus_metrics()
+services$retrieve_instance_details()
+services$collect_telemetry_data()
 
 ```
 
