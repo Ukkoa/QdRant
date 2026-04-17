@@ -1,0 +1,23 @@
+Package: QdRant
+Type: Package
+Title: R Client for the Qdrant Vector Database API
+Version: 0.2.0
+Author: Ethan Armstrong
+Maintainer: Ethan Armstrong <ethangarmstrong@gmail.com>
+Description: A full-featured R client for the Qdrant vector database REST API.
+    Provides R6 classes for managing collections, points (vectors + payloads),
+    vector search, recommendations, discovery, payload indexes, snapshots, and
+    aliases.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Imports:
+    httr,
+    jsonlite,
+    R6
+Suggests:
+    testthat (>= 3.0.0),
+    roxygen2,
+    withr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.2

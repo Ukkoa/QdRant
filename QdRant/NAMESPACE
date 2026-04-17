@@ -1,0 +1,3 @@
+exportPattern("^[[:alpha:]]+")
+importFrom("httr", "GET", "POST", "PUT", "PATCH", "DELETE",
+           "add_headers", "stop_for_status", "content")
