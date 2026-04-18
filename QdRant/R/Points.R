@@ -5,8 +5,6 @@
 #' Insert, update, delete, and query points (vectors + payloads) within a
 #' Qdrant collection.
 #'
-#' @field client A \code{QdrantClient} instance.
-#'
 #' @export
 Points <- R6::R6Class("Points",
   cloneable = FALSE,
@@ -489,6 +487,60 @@ Points <- R6::R6Class("Points",
       body  <- list(operations = operations)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
       private$.req("POST", url, body, query = query)
+    },
+
+    # -------------------------------------------------------------------------
+    # Chunked upload
+    # -------------------------------------------------------------------------
+
+    #' @description
+    #' Upsert a large list of points in sequential chunks.
+    #'
+    #' Splits \code{points} into batches of \code{chunk_size} and calls the
+    #' upsert endpoint for each batch, avoiding request-size or timeout limits
+    #' that can occur when uploading hundreds of thousands of vectors at once.
+    #'
+    #' Each element of \code{points} should be a named list with at minimum an
+    #' \code{id} field. Use the \code{point()} helper to build them.
+    #'
+    #' @param collection_name Name of the collection.
+    #' @param points List of point objects (e.g. from \code{point()}).
+    #' @param chunk_size Integer. Number of points per request (default 200).
+    #' @param wait Logical. Wait for each chunk to complete (default TRUE).
+    #' @param ordering (Optional) Character. Write ordering guarantee.
+    #'
+    #' @return Invisibly returns a list of API responses, one per chunk.
+    #'
+    #' @examples
+    #' \dontrun{
+    #'   pts <- lapply(1:10000, function(i)
+    #'     point(i, runif(384), list(idx = i)))
+    #'   points$upsert_points_chunked("my_col", pts, chunk_size = 500L)
+    #' }
+    upsert_points_chunked = function(collection_name, points,
+                                     chunk_size = 200L, wait = TRUE,
+                                     ordering = NULL) {
+      stopifnot(is.character(collection_name), nzchar(collection_name),
+                is.list(points), length(points) > 0,
+                is.numeric(chunk_size), chunk_size >= 1)
+
+      url   <- paste0(private$.base_url(),
+                      "/collections/", collection_name, "/points")
+      query <- list(wait = tolower(as.character(wait)))
+      if (!is.null(ordering)) query$ordering <- ordering
+
+      n_chunks  <- ceiling(length(points) / chunk_size)
+      responses <- vector("list", n_chunks)
+
+      for (i in seq_len(n_chunks)) {
+        start          <- (i - 1L) * chunk_size + 1L
+        end            <- min(i * chunk_size, length(points))
+        responses[[i]] <- private$.req("PUT", url,
+                                       list(points = points[start:end]),
+                                       query = query)
+      }
+
+      invisible(responses)
     }
   )
 )

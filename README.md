@@ -32,6 +32,16 @@ client <- QdrantClient$new(
   port    = 6333,
   api_key = Sys.getenv("QDRANT_API_KEY")
 )
+
+# With custom retry count (default is 3)
+# Retries automatically on HTTP 429/502/503/504 and network errors
+# with exponential backoff (1s, 2s, 4s, ...)
+client <- QdrantClient$new(
+  host        = "your-cluster-id.us-east-1-0.aws.cloud.qdrant.io",
+  port        = 6333,
+  api_key     = Sys.getenv("QDRANT_API_KEY"),
+  max_retries = 5L
+)
 ```
 
 All API namespaces are available directly on the client:
@@ -120,6 +130,11 @@ client$points$batch_update_points("my_col", operations = list(
 
 # Payload facets (requires a keyword index on the field)
 client$points$payload_field_facets("my_col", key = "color", limit = 10L)
+
+# Chunked upsert — for large uploads that would time out in a single request
+pts <- lapply(1:100000, function(i)
+  point(as.integer(i), runif(384), list(idx = i)))
+client$points$upsert_points_chunked("my_col", pts, chunk_size = 200L)
 ```
 
 ---
