@@ -4,8 +4,6 @@
 #' @description
 #' Manage Qdrant collections: create, update, delete, list, and inspect.
 #'
-#' @field client A \code{QdrantClient} instance.
-#'
 #' @export
 Collections <- R6::R6Class("Collections",
   cloneable = FALSE,

@@ -265,7 +265,53 @@ client$service$clear_issues()                   # clear issues
 
 ---
 
+## Helper Functions
+
+Builder helpers reduce the verbosity of common list constructions.
+
+```r
+# ── Vectors config ────────────────────────────────────────────────────────────
+
+# Single dense vector collection
+client$collections$create_collection("my_col",
+  vectors_config = vectors_config(384, "Cosine"))
+
+# Multiple named vector spaces
+client$collections$create_collection("my_col",
+  vectors_config = multi_vectors_config(
+    image = vectors_config(512, "Cosine"),
+    text  = vectors_config(384, "Dot")
+  ))
+
+# ── Point builder ─────────────────────────────────────────────────────────────
+
+# Build a point for upsert or update_vectors
+client$points$upsert_points("my_col",
+  points = list(
+    point(1L, c(0.1, 0.2, 0.3), list(color = "red")),
+    point(2L, c(0.4, 0.5, 0.6), list(color = "blue"))
+  ))
+
+# Multi-vector point
+point(1L, list(image = c(0.1, 0.2), text = c(0.9, 0.8)))
+
+# ── Query builders ────────────────────────────────────────────────────────────
+
+query_nearest(c(0.1, 0.2, 0.3))     # nearest-neighbour query
+query_fusion("rrf")                  # Reciprocal Rank Fusion
+query_fusion("dbsf")                 # Distribution-Based Score Fusion
+
+prefetch(query_nearest(c(0.1, 0.2, 0.3)), limit = 50)
+prefetch(query_nearest(c(0.1, 0.2)), limit = 50,
+  filter = qdrant_filter(must(be("color", "red"))),
+  using  = "image")                  # named vector space
+```
+
+---
+
 ## Filters Reference
+
+All conditions use the consistent `be(key, value_or_descriptor)` syntax:
 
 ```r
 # Match a single value
@@ -287,29 +333,29 @@ qdrant_filter(
 qdrant_filter(should(be("color", "red"), be("size", "large")))
 
 # Numeric range
-qdrant_filter(must(range_filter("price", gte = 10, lte = 100)))
-qdrant_filter(must(range_filter("score", gt = 0.5)))
+qdrant_filter(must(be("price", in_range(gte = 10, lte = 100))))
+qdrant_filter(must(be("score", in_range(gt = 0.5))))
 
 # Datetime range
-qdrant_filter(must(datetime_range("created_at", gte = "2024-01-01T00:00:00Z")))
+qdrant_filter(must(be("created_at", in_datetime_range(gte = "2024-01-01T00:00:00Z"))))
 
 # Multiple conditions in one clause
 qdrant_filter(
-  must(be("in_stock", TRUE), range_filter("price", lte = 50)),
+  must(be("in_stock", TRUE), be("price", in_range(lte = 50))),
   must_not(be("color", "black"))
 )
 
 # Geographic radius
-qdrant_filter(must(geo_radius("location", lon = -73.99, lat = 40.73, radius = 500)))
+qdrant_filter(must(be("location", in_geo_radius(lon = -73.99, lat = 40.73, radius = 500))))
 
 # Geographic bounding box
-qdrant_filter(must(geo_bounding_box("location",
+qdrant_filter(must(be("location", in_geo_bbox(
   top_left_lon = -74.0, top_left_lat = 40.8,
-  bottom_right_lon = -73.9, bottom_right_lat = 40.7)))
+  bottom_right_lon = -73.9, bottom_right_lat = 40.7))))
 
 # Field is NULL / empty
-qdrant_filter(must(is_null_field("description")))
-qdrant_filter(must(is_empty_field("tags")))
+qdrant_filter(must(be("description", is_null())))
+qdrant_filter(must(be("tags", is_empty())))
 
 # Filter by point ID
 qdrant_filter(must(has_id(c(1L, 2L, 3L))))

@@ -73,7 +73,7 @@ test_that("qdrant_filter combines must and must_not", {
 
 test_that("qdrant_filter supports multiple conditions in one clause", {
   f <- qdrant_filter(
-    must(be("color", "red"), range_filter("price", gte = 10))
+    must(be("color", "red"), be("price", in_range(gte = 10)))
   )
   expect_length(f$must, 2)
   expect_equal(f$must[[1]]$key, "color")
@@ -85,17 +85,17 @@ test_that("qdrant_filter supports should clause", {
   expect_length(f$should, 2)
 })
 
-# ── range_filter ──────────────────────────────────────────────────────────────
+# ── in_range ──────────────────────────────────────────────────────────────────
 
-test_that("range_filter builds gte/lte", {
-  c <- range_filter("price", gte = 10, lte = 100)
+test_that("be with in_range builds gte/lte", {
+  c <- be("price", in_range(gte = 10, lte = 100))
   expect_equal(c$range$gte, 10)
   expect_equal(c$range$lte, 100)
   expect_false("gt" %in% names(c$range))
 })
 
-test_that("range_filter omits unset bounds", {
-  c <- range_filter("score", gt = 0.5)
+test_that("be with in_range omits unset bounds", {
+  c <- be("score", in_range(gt = 0.5))
   expect_false("gte" %in% names(c$range))
   expect_false("lte" %in% names(c$range))
   expect_false("lt"  %in% names(c$range))
@@ -104,27 +104,27 @@ test_that("range_filter omits unset bounds", {
 
 # ── geo helpers ───────────────────────────────────────────────────────────────
 
-test_that("geo_radius builds correct structure", {
-  c <- geo_radius("location", lon = -73.99, lat = 40.73, radius = 500)
+test_that("be with in_geo_radius builds correct structure", {
+  c <- be("location", in_geo_radius(lon = -73.99, lat = 40.73, radius = 500))
   expect_equal(c$geo_radius$center$lon, -73.99)
   expect_equal(c$geo_radius$radius, 500)
 })
 
-test_that("geo_bounding_box builds correct structure", {
-  c <- geo_bounding_box("loc", -74.0, 40.8, -73.9, 40.7)
+test_that("be with in_geo_bbox builds correct structure", {
+  c <- be("loc", in_geo_bbox(-74.0, 40.8, -73.9, 40.7))
   expect_equal(c$geo_bounding_box$top_left$lon, -74.0)
   expect_equal(c$geo_bounding_box$bottom_right$lat, 40.7)
 })
 
-# ── is_null_field / is_empty_field / has_id ───────────────────────────────────
+# ── is_null / is_empty / has_id ───────────────────────────────────────────────
 
-test_that("is_null_field builds correct structure", {
-  c <- is_null_field("description")
+test_that("be with is_null builds correct structure", {
+  c <- be("description", is_null())
   expect_equal(c$is_null$key, "description")
 })
 
-test_that("is_empty_field builds correct structure", {
-  c <- is_empty_field("tags")
+test_that("be with is_empty builds correct structure", {
+  c <- be("tags", is_empty())
   expect_equal(c$is_empty$key, "tags")
 })
 
@@ -209,7 +209,7 @@ test_that("helpers compose into a search_points call", {
   srch$search_points("my_col",
     vector = c(0.1, 0.2, 0.3),
     filter = qdrant_filter(
-      must(be("color", "red"), range_filter("price", gte = 10, lte = 100)),
+      must(be("color", "red"), be("price", in_range(gte = 10, lte = 100))),
       must_not(be("color", "black"))
     )
   )

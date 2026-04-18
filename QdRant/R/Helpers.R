@@ -51,129 +51,144 @@ must_not <- function(...) {
   structure(list(type = "must_not", conditions = list(...)), class = "qdrant_clause")
 }
 
-#' Match a field to one or more values
+#' Match a field against a value or value descriptor
 #'
-#' Matches exactly one value when a single element is given, or any of the
-#' values when multiple are given.
+#' Pass a scalar or vector for exact/any-of matching. Pass a value descriptor
+#' (\code{in_range()}, \code{in_datetime_range()}, \code{in_geo_radius()},
+#' \code{in_geo_bbox()}, \code{is_null()}, \code{is_empty()}) for other
+#' condition types.
 #'
 #' @param key    Field name.
-#' @param values A single value or a vector of values.
+#' @param values A scalar, vector, or value descriptor.
 #' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
 #' @export
 #' @examples
 #' be("color", "red")
 #' be("color", c("red", "blue"))
-#' be("in_stock", TRUE)
+#' be("price",    in_range(gte = 10, lte = 100))
+#' be("location", in_geo_radius(lon = -73.99, lat = 40.73, radius = 500))
+#' be("created_at", in_datetime_range(gte = "2024-01-01T00:00:00Z"))
+#' be("description", is_null())
+#' be("tags", is_empty())
 be <- function(key, values) {
-  if (length(values) == 1) {
-    structure(list(key = key, match = list(value = values[[1]])), class = "qdrant_condition")
+  if (inherits(values, "qdrant_in_range") ||
+      inherits(values, "qdrant_in_datetime_range")) {
+    structure(list(key = key, range = values$range), class = "qdrant_condition")
+  } else if (inherits(values, "qdrant_in_geo_radius")) {
+    structure(list(key = key, geo_radius = values$geo_radius),
+              class = "qdrant_condition")
+  } else if (inherits(values, "qdrant_in_geo_bbox")) {
+    structure(list(key = key, geo_bounding_box = values$geo_bounding_box),
+              class = "qdrant_condition")
+  } else if (inherits(values, "qdrant_is_null")) {
+    structure(list(is_null = list(key = key)), class = "qdrant_condition")
+  } else if (inherits(values, "qdrant_is_empty")) {
+    structure(list(is_empty = list(key = key)), class = "qdrant_condition")
+  } else if (length(values) == 1) {
+    structure(list(key = key, match = list(value = values[[1]])),
+              class = "qdrant_condition")
   } else {
-    structure(list(key = key, match = list(any = as.list(values))), class = "qdrant_condition")
+    structure(list(key = key, match = list(any = as.list(values))),
+              class = "qdrant_condition")
   }
 }
 
-#' Filter by numeric range
+#' Numeric range descriptor for use inside \code{be()}
 #'
-#' @param key Field name.
 #' @param gte Greater-than-or-equal bound (optional).
 #' @param gt  Greater-than bound (optional).
 #' @param lte Less-than-or-equal bound (optional).
 #' @param lt  Less-than bound (optional).
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(range_filter("price", gte = 10, lte = 100))
-#' must(range_filter("score", gt = 0.5))
-range_filter <- function(key, gte = NULL, gt = NULL, lte = NULL, lt = NULL) {
+#' must(be("price", in_range(gte = 10, lte = 100)))
+#' must(be("score", in_range(gt = 0.5)))
+in_range <- function(gte = NULL, gt = NULL, lte = NULL, lt = NULL) {
   r <- list()
   if (!is.null(gte)) r$gte <- gte
   if (!is.null(gt))  r$gt  <- gt
   if (!is.null(lte)) r$lte <- lte
   if (!is.null(lt))  r$lt  <- lt
-  structure(list(key = key, range = r), class = "qdrant_condition")
+  structure(list(range = r), class = "qdrant_in_range")
 }
 
-#' Filter by datetime range
+#' Datetime range descriptor for use inside \code{be()}
 #'
-#' @param key Field name (must be a datetime field).
-#' @param gte ISO 8601 string lower bound (optional).
-#' @param gt  ISO 8601 string lower bound exclusive (optional).
-#' @param lte ISO 8601 string upper bound (optional).
-#' @param lt  ISO 8601 string upper bound exclusive (optional).
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @param gte ISO 8601 lower bound (optional).
+#' @param gt  ISO 8601 lower bound exclusive (optional).
+#' @param lte ISO 8601 upper bound (optional).
+#' @param lt  ISO 8601 upper bound exclusive (optional).
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(datetime_range("created_at", gte = "2024-01-01T00:00:00Z"))
-datetime_range <- function(key, gte = NULL, gt = NULL, lte = NULL, lt = NULL) {
+#' must(be("created_at", in_datetime_range(gte = "2024-01-01T00:00:00Z")))
+in_datetime_range <- function(gte = NULL, gt = NULL, lte = NULL, lt = NULL) {
   r <- list()
   if (!is.null(gte)) r$gte <- gte
   if (!is.null(gt))  r$gt  <- gt
   if (!is.null(lte)) r$lte <- lte
   if (!is.null(lt))  r$lt  <- lt
-  structure(list(key = key, range = r), class = "qdrant_condition")
+  structure(list(range = r), class = "qdrant_in_datetime_range")
 }
 
-#' Filter by geographic radius
+#' Geographic radius descriptor for use inside \code{be()}
 #'
-#' @param key    Field name (must be a geo field).
 #' @param lon    Longitude of the center point.
 #' @param lat    Latitude of the center point.
 #' @param radius Radius in meters.
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(geo_radius("location", lon = -73.99, lat = 40.73, radius = 500))
-geo_radius <- function(key, lon, lat, radius) {
+#' must(be("location", in_geo_radius(lon = -73.99, lat = 40.73, radius = 500)))
+in_geo_radius <- function(lon, lat, radius) {
   structure(
-    list(key = key, geo_radius = list(center = list(lon = lon, lat = lat), radius = radius)),
-    class = "qdrant_condition"
+    list(geo_radius = list(center = list(lon = lon, lat = lat), radius = radius)),
+    class = "qdrant_in_geo_radius"
   )
 }
 
-#' Filter by geographic bounding box
+#' Geographic bounding box descriptor for use inside \code{be()}
 #'
-#' @param key              Field name (must be a geo field).
 #' @param top_left_lon     Longitude of the top-left corner.
 #' @param top_left_lat     Latitude of the top-left corner.
 #' @param bottom_right_lon Longitude of the bottom-right corner.
 #' @param bottom_right_lat Latitude of the bottom-right corner.
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(geo_bounding_box("location",
+#' must(be("location", in_geo_bbox(
 #'   top_left_lon = -74.0, top_left_lat = 40.8,
-#'   bottom_right_lon = -73.9, bottom_right_lat = 40.7))
-geo_bounding_box <- function(key, top_left_lon, top_left_lat,
-                             bottom_right_lon, bottom_right_lat) {
+#'   bottom_right_lon = -73.9, bottom_right_lat = 40.7)))
+in_geo_bbox <- function(top_left_lon, top_left_lat,
+                        bottom_right_lon, bottom_right_lat) {
   structure(
-    list(key = key, geo_bounding_box = list(
+    list(geo_bounding_box = list(
       top_left     = list(lon = top_left_lon,     lat = top_left_lat),
       bottom_right = list(lon = bottom_right_lon, lat = bottom_right_lat)
     )),
-    class = "qdrant_condition"
+    class = "qdrant_in_geo_bbox"
   )
 }
 
-#' Match points where a payload field is NULL or missing
+#' Null field descriptor for use inside \code{be()}
 #'
-#' @param key Field name.
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(is_null_field("description"))
-is_null_field <- function(key) {
-  structure(list(is_null = list(key = key)), class = "qdrant_condition")
+#' must(be("description", is_null()))
+is_null <- function() {
+  structure(list(), class = "qdrant_is_null")
 }
 
-#' Match points where a payload field is empty
+#' Empty field descriptor for use inside \code{be()}
 #'
-#' @param key Field name.
-#' @return A condition for use inside \code{must()}, \code{should()}, or \code{must_not()}.
+#' @return A value descriptor for \code{be()}.
 #' @export
 #' @examples
-#' must(is_empty_field("tags"))
-is_empty_field <- function(key) {
-  structure(list(is_empty = list(key = key)), class = "qdrant_condition")
+#' must(be("tags", is_empty()))
+is_empty <- function() {
+  structure(list(), class = "qdrant_is_empty")
 }
 
 #' Filter by point ID
