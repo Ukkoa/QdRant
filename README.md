@@ -93,14 +93,14 @@ pts$retrieve_points("my_col", ids = c(1, 2, 3))
 # Scroll through all points (with optional filter)
 pts$scroll_points("my_col", limit = 100)
 pts$scroll_points("my_col",
-  filter = list(must = list(list(key = "color", match = list(value = "red")))),
+  filter = qdrant_filter(must(be("color", "red"))),
   limit  = 50
 )
 
 # Count points
 pts$count_points("my_col")
 pts$count_points("my_col",
-  filter = list(must = list(list(key = "color", match = list(value = "blue")))))
+  filter = qdrant_filter(must(be("color", "blue"))))
 
 # Payload operations
 pts$set_payload("my_col",
@@ -128,7 +128,7 @@ pts$delete_vectors("my_col",
 # Delete points
 pts$delete_points_by_id("my_col", ids = c(2, 3))
 pts$delete_points_by_filter("my_col",
-  filter = list(must = list(list(key = "color", match = list(value = "red")))))
+  filter = qdrant_filter(must(be("color", "red"))))
 
 # Batch operations
 pts$batch_update_points("my_col", operations = list(
@@ -157,7 +157,7 @@ srch$search_points("my_col",
 srch$search_points("my_col",
   vector = c(0.1, 0.2, 0.3),
   limit  = 5,
-  filter = list(must = list(list(key = "color", match = list(value = "red")))))
+  filter = qdrant_filter(must(be("color", "red"))))
 
 # Batch search
 srch$search_batch_points("my_col", searches = list(
@@ -174,26 +174,26 @@ srch$search_point_groups("my_col",
 
 # Modern query API (recommended — supports fusion, re-ranking, prefetch)
 srch$query_points("my_col",
-  query = list(nearest = c(0.1, 0.2, 0.3)),
+  query = query_nearest(c(0.1, 0.2, 0.3)),
   limit = 5)
 
 # Reciprocal Rank Fusion across multiple prefetches
 srch$query_points("my_col",
-  query    = list(fusion = "rrf"),
+  query    = query_fusion("rrf"),
   prefetch = list(
-    list(query = list(nearest = c(0.1, 0.2)), limit = 20),
-    list(query = list(nearest = c(0.9, 0.8)), limit = 20)
+    prefetch(query_nearest(c(0.1, 0.2)), limit = 20),
+    prefetch(query_nearest(c(0.9, 0.8)), limit = 20)
   ),
   limit = 5)
 
 # Batch and grouped query
 srch$query_points_batch("my_col", searches = list(
-  list(query = list(nearest = c(0.1, 0.2)), limit = 3),
-  list(query = list(nearest = c(0.4, 0.5)), limit = 3)
+  list(query = query_nearest(c(0.1, 0.2)), limit = 3),
+  list(query = query_nearest(c(0.4, 0.5)), limit = 3)
 ))
 
 srch$query_points_groups("my_col",
-  query      = list(nearest = c(0.1, 0.2)),
+  query      = query_nearest(c(0.1, 0.2)),
   group_by   = "category",
   group_size = 2)
 
@@ -319,51 +319,83 @@ svc$clear_issues()                       # clear issues
 
 ## Filters Reference
 
-Filters follow Qdrant's [filter syntax](https://qdrant.tech/documentation/concepts/filtering/).
-
 ```r
-# Match exact value
-filter <- list(must = list(
-  list(key = "color", match = list(value = "red"))
-))
+# Match a single value
+qdrant_filter(must(be("color", "red")))
 
-# Range
-filter <- list(must = list(
-  list(key = "price", range = list(gte = 10, lte = 100))
-))
+# Match any of several values
+qdrant_filter(must(be("color", c("red", "blue", "green"))))
 
-# Combined must + must_not
-filter <- list(
-  must     = list(list(key = "in_stock", match = list(value = TRUE))),
-  must_not = list(list(key = "color",    match = list(value = "black")))
+# Exclude values
+qdrant_filter(must_not(be("color", c("black", "brown"))))
+
+# Combined — must be red or blue, must not be black
+qdrant_filter(
+  must(be("color", c("red", "blue"))),
+  must_not(be("color", "black"))
 )
 
-# Geo radius
-filter <- list(must = list(
-  list(key = "location", geo_radius = list(
-    center = list(lon = -73.9857, lat = 40.7484),
-    radius = 500
-  ))
-))
+# At least one of several conditions (OR logic)
+qdrant_filter(should(be("color", "red"), be("size", "large")))
+
+# Numeric range
+qdrant_filter(must(range_filter("price", gte = 10, lte = 100)))
+qdrant_filter(must(range_filter("score", gt = 0.5)))
+
+# Datetime range
+qdrant_filter(must(datetime_range("created_at", gte = "2024-01-01T00:00:00Z")))
+
+# Multiple conditions in one clause
+qdrant_filter(
+  must(be("in_stock", TRUE), range_filter("price", lte = 50)),
+  must_not(be("color", "black"))
+)
+
+# Geographic radius
+qdrant_filter(must(geo_radius("location", lon = -73.99, lat = 40.73, radius = 500)))
+
+# Geographic bounding box
+qdrant_filter(must(geo_bounding_box("location",
+  top_left_lon = -74.0, top_left_lat = 40.8,
+  bottom_right_lon = -73.9, bottom_right_lat = 40.7)))
+
+# Field is NULL / empty
+qdrant_filter(must(is_null_field("description")))
+qdrant_filter(must(is_empty_field("tags")))
+
+# Filter by point ID
+qdrant_filter(must(has_id(c(1L, 2L, 3L))))
 ```
+
+Raw lists still work everywhere if you prefer to write them by hand.
 
 ---
 
 ## Running Tests
 
+### Automatic (Docker)
+
+If [Docker](https://www.docker.com/get-started/) is installed and running, `devtools::test()` will automatically:
+
+1. Pull and start a `qdrant/qdrant` container on `localhost:6333`
+2. Run all unit **and** integration tests against it
+3. Stop and remove the container when done
+
+```r
+devtools::test()
+```
+
+No configuration needed — just have Docker running.
+
 ### In RStudio
 
 1. Open the **QdRant/QdRant** project (File → Open Project → select `QdRant/QdRant/QdRant.Rproj`)
-2. Press **Ctrl+Shift+T** (or go to Build → Test Package) to run all unit tests
-3. Results appear in the **Build** pane with a clean pass/fail summary
+2. Press **Ctrl+Shift+T** (or go to Build → Test Package)
+3. Results appear in the **Build** pane
 
-### From the console
+### Against Qdrant Cloud
 
 ```r
-# Unit tests only (no live server needed)
-devtools::test()
-
-# With a live Qdrant instance
 Sys.setenv(
   QDRANT_HOST    = "your-cluster.qdrant.io",
   QDRANT_PORT    = "6333",
@@ -372,7 +404,7 @@ Sys.setenv(
 devtools::test()
 ```
 
-Integration tests are automatically skipped when `QDRANT_HOST` is not set, so the unit-test suite always runs offline.
+Integration tests are skipped automatically when Docker is unavailable and `QDRANT_HOST` is not set, so the unit-test suite always works offline.
 
 ---
 

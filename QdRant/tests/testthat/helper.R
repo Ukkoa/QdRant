@@ -52,6 +52,69 @@ MockQdrantClient <- R6::R6Class("MockQdrantClient",
 )
 
 # ---------------------------------------------------------------------------
+# Docker: spin up qdrant/qdrant automatically when no host is configured
+# ---------------------------------------------------------------------------
+
+local({
+  # Only auto-start if no host is already configured
+  if (nzchar(Sys.getenv("QDRANT_HOST"))) return(invisible(NULL))
+
+  # Check Docker is available
+  if (system("docker info", ignore.stdout = TRUE, ignore.stderr = TRUE) != 0) {
+    return(invisible(NULL))
+  }
+
+  # Check if Qdrant is already listening on 6333
+  already_up <- tryCatch(
+    { httr::GET("http://localhost:6333", httr::timeout(1)); TRUE },
+    error = function(e) FALSE
+  )
+  if (already_up) {
+    Sys.setenv(QDRANT_HOST = "localhost", QDRANT_PORT = "6333")
+    return(invisible(NULL))
+  }
+
+  # Start the container
+  container_id <- trimws(system(
+    "docker run -d --rm -p 6333:6333 qdrant/qdrant",
+    intern = TRUE, ignore.stderr = TRUE
+  ))
+  if (!nzchar(container_id)) return(invisible(NULL))
+
+  message("Started Qdrant container ", substr(container_id, 1, 12),
+          " — will stop when tests finish.")
+  Sys.setenv(QDRANT_HOST = "localhost", QDRANT_PORT = "6333")
+
+  # Poll until ready (up to 30 s)
+  ready <- FALSE
+  for (i in seq_len(60)) {
+    Sys.sleep(0.5)
+    ready <- tryCatch(
+      { httr::GET("http://localhost:6333", httr::timeout(1)); TRUE },
+      error = function(e) FALSE
+    )
+    if (ready) break
+  }
+  if (!ready) {
+    warning("Qdrant container started but did not become ready — integration tests will be skipped.")
+    system(paste("docker stop", container_id),
+           ignore.stdout = TRUE, ignore.stderr = TRUE)
+    return(invisible(NULL))
+  }
+
+  # Tear down when the test session ends
+  withr::defer(
+    {
+      message("Stopping Qdrant container ", substr(container_id, 1, 12), "...")
+      system(paste("docker stop", container_id),
+             ignore.stdout = TRUE, ignore.stderr = TRUE)
+      Sys.unsetenv("QDRANT_HOST")
+    },
+    envir = testthat::teardown_env()
+  )
+})
+
+# ---------------------------------------------------------------------------
 # Integration-test helpers
 # ---------------------------------------------------------------------------
 

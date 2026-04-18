@@ -184,7 +184,7 @@ Points <- R6::R6Class("Points",
     #'   )
     #' }
     upsert_points = function(collection_name, ids, vectors = NULL,
-                             payloads = NULL, ordering = NULL) {
+                             payloads = NULL, ordering = NULL, wait = TRUE) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
       if (is.null(ids) || length(ids) == 0) {
         stop("ids must be provided and cannot be empty.")
@@ -209,7 +209,8 @@ Points <- R6::R6Class("Points",
       url   <- paste0(self$client$get_base_url(),
                       "/collections/", collection_name, "/points")
       body  <- list(points = pts)
-      query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
+      query <- list(wait = tolower(as.character(wait)))
+      if (!is.null(ordering)) query$ordering <- ordering
       self$client$make_request("PUT", url, body, query = query)
     },
 

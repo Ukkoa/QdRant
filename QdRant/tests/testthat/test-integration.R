@@ -123,7 +123,7 @@ test_that("[integration] points lifecycle: upsert / retrieve / scroll / delete",
     vectors  = sample_vectors,
     payloads = sample_payloads
   )
-  expect_equal(res$result$status, "acknowledged")
+  expect_true(res$result$status %in% c("acknowledged", "completed"))
 
   # Retrieve single
   pt <- pts$retrieve_point(col_name, 1L)
