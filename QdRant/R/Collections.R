@@ -9,15 +9,15 @@
 #' @export
 Collections <- R6::R6Class("Collections",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     #' @description
@@ -84,9 +84,9 @@ Collections <- R6::R6Class("Collections",
         if (!is.null(val)) body[[field]] <- val
       }
 
-      url   <- paste0(self$client$get_base_url(), "/collections/", collection_name)
+      url   <- paste0(private$.base_url(), "/collections/", collection_name)
       query <- if (!is.null(timeout)) list(timeout = timeout) else NULL
-      self$client$make_request("PUT", url, body, query = query)
+      private$.req("PUT", url, body, query = query)
     },
 
     #' @description
@@ -134,9 +134,9 @@ Collections <- R6::R6Class("Collections",
         if (!is.null(val)) body[[field]] <- val
       }
 
-      url   <- paste0(self$client$get_base_url(), "/collections/", collection_name)
+      url   <- paste0(private$.base_url(), "/collections/", collection_name)
       query <- if (!is.null(timeout)) list(timeout = timeout) else NULL
-      self$client$make_request("PATCH", url, body, query = query)
+      private$.req("PATCH", url, body, query = query)
     },
 
     #' @description
@@ -152,8 +152,8 @@ Collections <- R6::R6Class("Collections",
     #' }
     get_collection_details = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(), "/collections/", collection_name)
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/collections/", collection_name)
+      private$.req("GET", url)
     },
 
     #' @description
@@ -166,8 +166,8 @@ Collections <- R6::R6Class("Collections",
     #'   collections$list_all_collections()
     #' }
     list_all_collections = function() {
-      url <- paste0(self$client$get_base_url(), "/collections")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/collections")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -183,8 +183,8 @@ Collections <- R6::R6Class("Collections",
     #' }
     check_collection_existence = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(), "/collections/", collection_name, "/exists")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/collections/", collection_name, "/exists")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -201,9 +201,9 @@ Collections <- R6::R6Class("Collections",
     #' }
     delete_collection = function(collection_name, timeout = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url   <- paste0(self$client$get_base_url(), "/collections/", collection_name)
+      url   <- paste0(private$.base_url(), "/collections/", collection_name)
       query <- if (!is.null(timeout)) list(timeout = timeout) else NULL
-      self$client$make_request("DELETE", url, query = query)
+      private$.req("DELETE", url, query = query)
     },
 
     #' @description
@@ -219,8 +219,8 @@ Collections <- R6::R6Class("Collections",
     #' }
     get_collection_optimizations = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(), "/collections/", collection_name, "/optimizations")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/collections/", collection_name, "/optimizations")
+      private$.req("GET", url)
     }
   )
 )

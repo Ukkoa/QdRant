@@ -20,4 +20,14 @@ Suggests:
     roxygen2,
     withr
 Config/testthat/edition: 3
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+Collate:
+    'Helpers.R'
+    'Aliases.R'
+    'Collections.R'
+    'Indexes.R'
+    'Points.R'
+    'Search.R'
+    'Service.R'
+    'Snapshots.R'
+    'QdrantClient.R'

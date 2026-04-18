@@ -4,8 +4,7 @@
 \alias{Collections}
 \title{Collections}
 \description{
-This class provides methods to manage collections in Qdrant.
-It allows for creating, retrieving, listing, checking existence, and deleting collections.
+Manage Qdrant collections: create, update, delete, list, and inspect.
 }
 \examples{
 
@@ -14,9 +13,18 @@ It allows for creating, retrieving, listing, checking existence, and deleting co
 ## ------------------------------------------------
 
 \dontrun{
-  client <- QdrantClient$new()
+  client      <- QdrantClient$new()
   collections <- Collections$new(client)
-  collections$create_collection("my_collection", 128)
+  collections$create_collection("my_collection", vector_size = 128)
+}
+
+## ------------------------------------------------
+## Method `Collections$update_collection`
+## ------------------------------------------------
+
+\dontrun{
+  collections$update_collection("my_collection",
+    optimizers_config = list(indexing_threshold = 50000))
 }
 
 ## ------------------------------------------------
@@ -50,11 +58,26 @@ It allows for creating, retrieving, listing, checking existence, and deleting co
 \dontrun{
   collections$delete_collection("my_collection")
 }
+
+## ------------------------------------------------
+## Method `Collections$get_collection_optimizations`
+## ------------------------------------------------
+
+\dontrun{
+  collections$get_collection_optimizations("my_collection")
+}
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{client}}{A `QdrantClient` object to handle the connection and API requests.}
+\item{\code{client}}{A \code{QdrantClient} instance.}
+}
+\if{html}{\out{</div>}}
+}
+\section{Active bindings}{
+\if{html}{\out{<div class="r6-active-bindings">}}
+\describe{
+\item{\code{client}}{A \code{QdrantClient} instance.}
 }
 \if{html}{\out{</div>}}
 }
@@ -63,26 +86,29 @@ It allows for creating, retrieving, listing, checking existence, and deleting co
 \itemize{
 \item \href{#method-Collections-new}{\code{Collections$new()}}
 \item \href{#method-Collections-create_collection}{\code{Collections$create_collection()}}
+\item \href{#method-Collections-update_collection}{\code{Collections$update_collection()}}
 \item \href{#method-Collections-get_collection_details}{\code{Collections$get_collection_details()}}
 \item \href{#method-Collections-list_all_collections}{\code{Collections$list_all_collections()}}
 \item \href{#method-Collections-check_collection_existence}{\code{Collections$check_collection_existence()}}
 \item \href{#method-Collections-delete_collection}{\code{Collections$delete_collection()}}
-\item \href{#method-Collections-clone}{\code{Collections$clone()}}
+\item \href{#method-Collections-get_collection_optimizations}{\code{Collections$get_collection_optimizations()}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Collections-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Collections-new}{}}}
 \subsection{Method \code{new()}}{
-Initialize the Collections object with a Qdrant client.
+Initialize with closures provided by \code{QdrantClient}.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Collections$new(client)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Collections$new(req_fn, base_url_fn)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{client}}{An instance of the `QdrantClient` class to interact with the Qdrant API.}
+\item{\code{req_fn}}{Function. Makes HTTP requests.}
+
+\item{\code{base_url_fn}}{Function. Returns the base URL.}
 }
 \if{html}{\out{</div>}}
 }
@@ -91,29 +117,131 @@ Initialize the Collections object with a Qdrant client.
 \if{html}{\out{<a id="method-Collections-create_collection"></a>}}
 \if{latex}{\out{\hypertarget{method-Collections-create_collection}{}}}
 \subsection{Method \code{create_collection()}}{
-Create a new collection in Qdrant.
+Create a new collection.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Collections$create_collection(collection_name, vector_size)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Collections$create_collection(
+  collection_name,
+  vector_size,
+  distance_metric = "Cosine",
+  shard_number = NULL,
+  sharding_method = NULL,
+  replication_factor = NULL,
+  write_consistency_factor = NULL,
+  on_disk_payload = NULL,
+  hnsw_config = NULL,
+  wal_config = NULL,
+  optimizers_config = NULL,
+  init_from = NULL,
+  quantization_config = NULL,
+  sparse_vectors = NULL,
+  timeout = NULL
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{collection_name}}{A character string representing the name of the collection to create.}
+\item{\code{collection_name}}{Name of the collection to create.}
 
-\item{\code{vector_size}}{An integer specifying the size of vectors stored in the collection.}
+\item{\code{vector_size}}{Integer. Dimensionality of stored vectors.}
+
+\item{\code{distance_metric}}{Distance function: \code{"Cosine"}, \code{"Dot"}, or \code{"Euclid"}.}
+
+\item{\code{shard_number}}{(Optional) Integer. Number of shards.}
+
+\item{\code{sharding_method}}{(Optional) Character. \code{"Auto"}, \code{"Custom"}, or \code{"Indexed"}.}
+
+\item{\code{replication_factor}}{(Optional) Integer. Replicas per shard.}
+
+\item{\code{write_consistency_factor}}{(Optional) Integer. Replicas that must ack writes.}
+
+\item{\code{on_disk_payload}}{(Optional) Logical. Store payload on disk.}
+
+\item{\code{hnsw_config}}{(Optional) Named list. HNSW index parameters.}
+
+\item{\code{wal_config}}{(Optional) Named list. Write-Ahead Log parameters.}
+
+\item{\code{optimizers_config}}{(Optional) Named list. Optimizer parameters.}
+
+\item{\code{init_from}}{(Optional) Named list with \code{collection} key — copy from existing collection.}
+
+\item{\code{quantization_config}}{(Optional) Named list. Quantization parameters.}
+
+\item{\code{sparse_vectors}}{(Optional) Named list. Sparse vector configurations.}
+
+\item{\code{timeout}}{(Optional) Numeric. Seconds to wait for replication acknowledgement.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The response from the API, indicating whether the collection was created.
+API response list.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{\dontrun{
-  client <- QdrantClient$new()
+  client      <- QdrantClient$new()
   collections <- Collections$new(client)
-  collections$create_collection("my_collection", 128)
+  collections$create_collection("my_collection", vector_size = 128)
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Collections-update_collection"></a>}}
+\if{latex}{\out{\hypertarget{method-Collections-update_collection}{}}}
+\subsection{Method \code{update_collection()}}{
+Update an existing collection's parameters.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{Collections$update_collection(
+  collection_name,
+  vectors = NULL,
+  optimizers_config = NULL,
+  params = NULL,
+  hnsw_config = NULL,
+  quantization_config = NULL,
+  sparse_vectors = NULL,
+  strict_mode_config = NULL,
+  metadata = NULL,
+  timeout = NULL
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{collection_name}}{Name of the collection.}
+
+\item{\code{vectors}}{(Optional) Named list. Updated vector configurations.}
+
+\item{\code{optimizers_config}}{(Optional) Named list. Updated optimizer settings.}
+
+\item{\code{params}}{(Optional) Named list. Updated collection parameters.}
+
+\item{\code{hnsw_config}}{(Optional) Named list. Updated HNSW settings.}
+
+\item{\code{quantization_config}}{(Optional) Named list. Updated quantization settings.}
+
+\item{\code{sparse_vectors}}{(Optional) Named list. Updated sparse vector configurations.}
+
+\item{\code{strict_mode_config}}{(Optional) Named list. Strict mode settings.}
+
+\item{\code{metadata}}{(Optional) Named list. Arbitrary collection metadata.}
+
+\item{\code{timeout}}{(Optional) Numeric. Seconds to wait for acknowledgement.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+API response list.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+  collections$update_collection("my_collection",
+    optimizers_config = list(indexing_threshold = 50000))
 }
 }
 \if{html}{\out{</div>}}
@@ -133,12 +261,12 @@ Get details of a specific collection.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{collection_name}}{A character string representing the name of the collection.}
+\item{\code{collection_name}}{Name of the collection.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A list containing the details of the specified collection.
+API response list with collection info.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -155,13 +283,13 @@ A list containing the details of the specified collection.
 \if{html}{\out{<a id="method-Collections-list_all_collections"></a>}}
 \if{latex}{\out{\hypertarget{method-Collections-list_all_collections}{}}}
 \subsection{Method \code{list_all_collections()}}{
-List all collections in the Qdrant instance.
+List all collections.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Collections$list_all_collections()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-A list of collections stored in Qdrant.
+API response list containing all collection names.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -178,7 +306,7 @@ A list of collections stored in Qdrant.
 \if{html}{\out{<a id="method-Collections-check_collection_existence"></a>}}
 \if{latex}{\out{\hypertarget{method-Collections-check_collection_existence}{}}}
 \subsection{Method \code{check_collection_existence()}}{
-Check if a specific collection exists in Qdrant.
+Check whether a collection exists.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{Collections$check_collection_existence(collection_name)}\if{html}{\out{</div>}}
 }
@@ -186,12 +314,12 @@ Check if a specific collection exists in Qdrant.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{collection_name}}{A character string representing the name of the collection to check.}
+\item{\code{collection_name}}{Name of the collection.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-A logical value indicating whether the collection exists (TRUE/FALSE).
+API response list with an \code{exists} boolean.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -208,20 +336,22 @@ A logical value indicating whether the collection exists (TRUE/FALSE).
 \if{html}{\out{<a id="method-Collections-delete_collection"></a>}}
 \if{latex}{\out{\hypertarget{method-Collections-delete_collection}{}}}
 \subsection{Method \code{delete_collection()}}{
-Delete a collection from Qdrant.
+Delete a collection.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Collections$delete_collection(collection_name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Collections$delete_collection(collection_name, timeout = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{collection_name}}{A character string representing the name of the collection to delete.}
+\item{\code{collection_name}}{Name of the collection.}
+
+\item{\code{timeout}}{(Optional) Numeric. Seconds to wait for acknowledgement.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-The response from the API indicating whether the collection was successfully deleted.
+API response list.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -235,20 +365,33 @@ The response from the API indicating whether the collection was successfully del
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Collections-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-Collections-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
+\if{html}{\out{<a id="method-Collections-get_collection_optimizations"></a>}}
+\if{latex}{\out{\hypertarget{method-Collections-get_collection_optimizations}{}}}
+\subsection{Method \code{get_collection_optimizations()}}{
+Get the optimization status of a collection.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{Collections$clone(deep = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{Collections$get_collection_optimizations(collection_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{deep}}{Whether to make a deep clone.}
+\item{\code{collection_name}}{Name of the collection.}
 }
 \if{html}{\out{</div>}}
 }
+\subsection{Returns}{
+API response list describing optimizer state.
+}
+\subsection{Examples}{
+\if{html}{\out{<div class="r example copy">}}
+\preformatted{\dontrun{
+  collections$get_collection_optimizations("my_collection")
+}
+}
+\if{html}{\out{</div>}}
+
+}
+
 }
 }

@@ -28,19 +28,22 @@ client <- QdrantClient$new()
 
 # Qdrant Cloud
 client <- QdrantClient$new(
-  host    = "your-cluster-id.us-east-1-1.aws.cloud.qdrant.io",
+  host    = "your-cluster-id.us-east-1-0.aws.cloud.qdrant.io",
   port    = 6333,
   api_key = Sys.getenv("QDRANT_API_KEY")
 )
+```
 
-# Create helper objects
-col  <- Collections$new(client)
-pts  <- Points$new(client)
-srch <- Search$new(client)
-idx  <- Indexes$new(client)
-als  <- Aliases$new(client)
-snap <- Snapshots$new(client)
-svc  <- Service$new(client)
+All API namespaces are available directly on the client:
+
+```r
+client$collections   # create, list, update, delete collections
+client$points        # upsert, retrieve, scroll, delete points & payloads
+client$search        # ANN search, query, recommend, discover
+client$indexes       # payload indexes
+client$aliases       # collection aliases
+client$snapshots     # snapshots
+client$service       # health, telemetry, metrics
 ```
 
 ---
@@ -48,28 +51,23 @@ svc  <- Service$new(client)
 ## Collections
 
 ```r
-col <- Collections$new(client)
-
-# Create — vectors_config sets the embedding size and distance metric
-col$create_collection("my_col",
-  vectors_config = list(size = 384, distance = "Cosine"))
+# Create
+client$collections$create_collection("my_col", vector_size = 384, distance_metric = "Cosine")
 
 # With sparse vectors (e.g. BM25 / SPLADE)
-col$create_collection("my_col",
-  vectors_config        = list(size = 384, distance = "Cosine"),
+client$collections$create_collection("my_col",
+  vectors_config        = vectors_config(384, "Cosine"),
   sparse_vectors_config = list(sparse = list()))
 
 # List / info / exists / delete
-col$list_collections()
-col$get_collection("my_col")
-col$collection_exists("my_col")
-col$delete_collection("my_col")
+client$collections$list_all_collections()
+client$collections$get_collection_details("my_col")
+client$collections$check_collection_existence("my_col")
+client$collections$delete_collection("my_col")
 
-# Update HNSW / optimizer settings
-col$update_collection("my_col",
+# Update optimizer settings
+client$collections$update_collection("my_col",
   optimizers_config = list(indexing_threshold = 20000))
-
-# Aliases are managed separately — see the Aliases section below
 ```
 
 ---
@@ -77,66 +75,51 @@ col$update_collection("my_col",
 ## Points
 
 ```r
-pts <- Points$new(client)
-
 # Upsert (insert or overwrite)
-pts$upsert_points("my_col",
-  ids      = c(1, 2, 3),
+client$points$upsert_points("my_col",
+  ids      = as.integer(1:3),
   vectors  = list(c(0.1, 0.2, 0.3), c(0.4, 0.5, 0.6), c(0.7, 0.8, 0.9)),
   payloads = list(list(color = "red"), list(color = "blue"), list(color = "green"))
 )
 
-# Retrieve single / multiple points
-pts$retrieve_point("my_col", id = 1)
-pts$retrieve_points("my_col", ids = c(1, 2, 3))
+# Retrieve
+client$points$retrieve_point("my_col", id = 1L)
+client$points$retrieve_points("my_col", ids = c(1L, 2L, 3L))
 
-# Scroll through all points (with optional filter)
-pts$scroll_points("my_col", limit = 100)
-pts$scroll_points("my_col",
+# Scroll (with optional filter)
+client$points$scroll_points("my_col", limit = 100L)
+client$points$scroll_points("my_col",
   filter = qdrant_filter(must(be("color", "red"))),
-  limit  = 50
-)
+  limit  = 50L)
 
-# Count points
-pts$count_points("my_col")
-pts$count_points("my_col",
+# Count
+client$points$count_points("my_col")
+client$points$count_points("my_col",
   filter = qdrant_filter(must(be("color", "blue"))))
 
 # Payload operations
-pts$set_payload("my_col",
-  payload = list(color = "purple"),
-  ids     = c(1))
-
-pts$overwrite_payload("my_col",
-  payload = list(color = "yellow"),
-  ids     = c(1))
-
-pts$delete_payload("my_col",
-  keys = c("color"),
-  ids  = c(1))
-
-pts$clear_payload("my_col", ids = c(1, 2))
+client$points$set_payload("my_col",       payload = list(verified = TRUE), ids = c(1L))
+client$points$overwrite_payload("my_col", payload = list(color = "yellow"), ids = c(1L))
+client$points$delete_payload("my_col",    keys = c("verified"), ids = c(1L))
+client$points$clear_payload("my_col",     ids = c(1L, 2L))
 
 # Update / delete vectors
-pts$update_vectors("my_col",
-  points = list(list(id = 1, vector = c(0.9, 0.8, 0.7))))
-
-pts$delete_vectors("my_col",
-  ids          = c(1),
-  vector_names = c("image"))
+client$points$update_vectors("my_col",
+  points = list(list(id = 1L, vector = c(0.9, 0.8, 0.7))))
+client$points$delete_vectors("my_col", ids = c(1L), vector_names = c("image"))
 
 # Delete points
-pts$delete_points_by_id("my_col", ids = c(2, 3))
-pts$delete_points_by_filter("my_col",
+client$points$delete_points_by_id("my_col", ids = c(2L, 3L))
+client$points$delete_points_by_filter("my_col",
   filter = qdrant_filter(must(be("color", "red"))))
 
 # Batch operations
-pts$batch_update_points("my_col", operations = list(
-  list(upsert = list(points = list(list(id = 10, vector = c(0.1, 0.2, 0.3)))))
+client$points$batch_update_points("my_col", operations = list(
+  list(upsert = list(points = list(list(id = 10L, vector = c(0.1, 0.2, 0.3)))))
 ))
 
 # Payload facets (requires a keyword index on the field)
-pts$payload_field_facets("my_col", key = "color", limit = 10L)
+client$points$payload_field_facets("my_col", key = "color", limit = 10L)
 ```
 
 ---
@@ -144,84 +127,57 @@ pts$payload_field_facets("my_col", key = "color", limit = 10L)
 ## Search
 
 ```r
-srch <- Search$new(client)
-
 # Basic ANN search
-srch$search_points("my_col",
+client$search$search_points("my_col",
   vector          = c(0.1, 0.2, 0.3),
-  limit           = 5,
+  limit           = 5L,
   with_payload    = TRUE,
   score_threshold = 0.7)
 
 # Search with a filter
-srch$search_points("my_col",
+client$search$search_points("my_col",
   vector = c(0.1, 0.2, 0.3),
-  limit  = 5,
+  limit  = 5L,
   filter = qdrant_filter(must(be("color", "red"))))
 
 # Batch search
-srch$search_batch_points("my_col", searches = list(
-  list(vector = c(0.1, 0.2, 0.3), limit = 3),
-  list(vector = c(0.4, 0.5, 0.6), limit = 3)
+client$search$search_batch_points("my_col", searches = list(
+  list(vector = c(0.1, 0.2, 0.3), limit = 3L),
+  list(vector = c(0.4, 0.5, 0.6), limit = 3L)
 ))
 
 # Grouped search
-srch$search_point_groups("my_col",
+client$search$search_point_groups("my_col",
   vector     = c(0.1, 0.2, 0.3),
   group_by   = "category",
-  group_size = 2,
-  limit      = 5)
+  group_size = 2L,
+  limit      = 5L)
 
 # Modern query API (recommended — supports fusion, re-ranking, prefetch)
-srch$query_points("my_col",
+client$search$query_points("my_col",
   query = query_nearest(c(0.1, 0.2, 0.3)),
-  limit = 5)
+  limit = 5L)
 
 # Reciprocal Rank Fusion across multiple prefetches
-srch$query_points("my_col",
+client$search$query_points("my_col",
   query    = query_fusion("rrf"),
   prefetch = list(
-    prefetch(query_nearest(c(0.1, 0.2)), limit = 20),
-    prefetch(query_nearest(c(0.9, 0.8)), limit = 20)
+    prefetch(query_nearest(c(0.1, 0.2, 0.3)), limit = 20L),
+    prefetch(query_nearest(c(0.9, 0.8, 0.7)), limit = 20L)
   ),
-  limit = 5)
-
-# Batch and grouped query
-srch$query_points_batch("my_col", searches = list(
-  list(query = query_nearest(c(0.1, 0.2)), limit = 3),
-  list(query = query_nearest(c(0.4, 0.5)), limit = 3)
-))
-
-srch$query_points_groups("my_col",
-  query      = query_nearest(c(0.1, 0.2)),
-  group_by   = "category",
-  group_size = 2)
+  limit = 5L)
 
 # Recommendation
-srch$recommend_points("my_col",
+client$search$recommend_points("my_col",
   positive = list(1L, 2L),
   negative = list(3L),
-  limit    = 5)
-
-srch$recommend_batch("my_col", searches = list(
-  list(positive = list(1L), limit = 5)
-))
-
-srch$recommend_groups("my_col",
-  positive   = list(1L),
-  group_by   = "category",
-  group_size = 2)
+  limit    = 5L)
 
 # Discovery (context-based search)
-srch$discover_points("my_col",
+client$search$discover_points("my_col",
   target  = 1L,
   context = list(list(positive = 2L, negative = 3L)),
-  limit   = 5)
-
-srch$discover_batch("my_col", searches = list(
-  list(target  = 1L,
-       context = list(list(positive = 2L, negative = 3L)))
-))
+  limit   = 5L)
 ```
 
 ---
@@ -231,22 +187,20 @@ srch$discover_batch("my_col", searches = list(
 Indexes are required for filtered searches and counts on Qdrant Cloud.
 
 ```r
-idx <- Indexes$new(client)
-
 # Create a keyword index (for exact match filters)
-idx$create_payload_index("my_col",
+client$indexes$create_payload_index("my_col",
   field_name   = "color",
   field_schema = "keyword")
 
 # Other supported types: "integer", "float", "bool", "geo", "datetime", "text"
 
 # Full-text index with custom tokenizer
-idx$create_payload_index("my_col",
+client$indexes$create_payload_index("my_col",
   field_name   = "description",
   field_schema = list(type = "text", tokenizer = "word"))
 
 # Delete an index
-idx$delete_payload_index("my_col", field_name = "color")
+client$indexes$delete_payload_index("my_col", field_name = "color")
 ```
 
 ---
@@ -254,22 +208,20 @@ idx$delete_payload_index("my_col", field_name = "color")
 ## Aliases
 
 ```r
-als <- Aliases$new(client)
-
 # Atomic blue/green swap (both actions in one API call)
-als$update_aliases(actions = list(
+client$aliases$update_aliases(actions = list(
   list(delete_alias = list(alias_name = "prod")),
   list(create_alias = list(collection_name = "my_col_v2", alias_name = "prod"))
 ))
 
 # Convenience wrappers
-als$create_alias("my_col_v2", "prod")
-als$rename_alias("prod", "prod_archived")
-als$delete_alias("prod_archived")
+client$aliases$create_alias("my_col_v2", "prod")
+client$aliases$rename_alias("prod", "prod_archived")
+client$aliases$delete_alias("prod_archived")
 
 # List aliases
-als$list_all_aliases()
-als$list_collection_aliases("my_col")
+client$aliases$list_all_aliases()
+client$aliases$list_collection_aliases("my_col")
 ```
 
 ---
@@ -277,22 +229,20 @@ als$list_collection_aliases("my_col")
 ## Snapshots
 
 ```r
-snap <- Snapshots$new(client)
-
 # Collection snapshots
-snap$list_snapshots("my_col")
-snap$create_snapshot("my_col")
-snap$delete_snapshot("my_col", snapshot_name = "my_col-1234.snapshot")
+client$snapshots$list_collection_snapshots("my_col")
+client$snapshots$create_collection_snapshot("my_col")
+client$snapshots$delete_collection_snapshot("my_col", "my_col-1234.snapshot")
 
 # Recover a collection from a remote snapshot URL
-snap$recover_from_snapshot("my_col",
+client$snapshots$recover_collection_from_snapshot("my_col",
   location = "https://storage.example.com/my_col.snapshot",
   priority = "snapshot")
 
 # Full-storage snapshots
-snap$list_full_snapshots()
-snap$create_full_snapshot()
-snap$delete_full_snapshot(snapshot_name = "full-1234.snapshot")
+client$snapshots$list_full_snapshots()
+client$snapshots$create_full_snapshot()
+client$snapshots$delete_full_snapshot("full-1234.snapshot")
 ```
 
 ---
@@ -300,19 +250,17 @@ snap$delete_full_snapshot(snapshot_name = "full-1234.snapshot")
 ## Service & Health
 
 ```r
-svc <- Service$new(client)
-
-svc$get_root()                           # version info
-svc$healthz()                            # Kubernetes liveness probe
-svc$readyz()                             # Kubernetes readiness probe
-svc$get_metrics()                        # Prometheus metrics
-svc$get_telemetry()                      # telemetry data
-svc$retrieve_instance_details()          # cluster / node info
-svc$get_locks()                          # check write-protection lock
-svc$set_write_protection(TRUE)           # enable write lock
-svc$set_write_protection(FALSE)          # disable write lock
-svc$get_issues()                         # list cluster issues
-svc$clear_issues()                       # clear issues
+client$service$retrieve_instance_details()      # version / cluster info
+client$service$collect_telemetry_data()         # telemetry
+client$service$collect_prometheus_metrics()     # Prometheus metrics
+client$service$kubernetes_liveness_probe()      # liveness check
+client$service$kubernetes_readiness_probe()     # readiness check
+client$service$kubernetes_health_check()        # health check
+client$service$check_write_protection()         # check write lock
+client$service$set_write_protection(TRUE)       # enable write lock
+client$service$set_write_protection(FALSE)      # disable write lock
+client$service$get_issues()                     # list cluster issues
+client$service$clear_issues()                   # clear issues
 ```
 
 ---
@@ -335,7 +283,7 @@ qdrant_filter(
   must_not(be("color", "black"))
 )
 
-# At least one of several conditions (OR logic)
+# At least one condition (OR logic)
 qdrant_filter(should(be("color", "red"), be("size", "large")))
 
 # Numeric range
@@ -375,23 +323,19 @@ Raw lists still work everywhere if you prefer to write them by hand.
 
 ### Automatic (Docker)
 
-If [Docker](https://www.docker.com/get-started/) is installed and running, `devtools::test()` will automatically:
+If [Docker](https://www.docker.com/get-started/) is installed and running, the test suite will automatically:
 
 1. Pull and start a `qdrant/qdrant` container on `localhost:6333`
 2. Run all unit **and** integration tests against it
 3. Stop and remove the container when done
 
 ```r
-devtools::test()
+# In RStudio: Ctrl+Shift+T
+# Or directly:
+testthat::test_dir("tests/testthat")
 ```
 
 No configuration needed — just have Docker running.
-
-### In RStudio
-
-1. Open the **QdRant/QdRant** project (File → Open Project → select `QdRant/QdRant/QdRant.Rproj`)
-2. Press **Ctrl+Shift+T** (or go to Build → Test Package)
-3. Results appear in the **Build** pane
 
 ### Against Qdrant Cloud
 
@@ -401,7 +345,7 @@ Sys.setenv(
   QDRANT_PORT    = "6333",
   QDRANT_API_KEY = "your-api-key"
 )
-devtools::test()
+testthat::test_dir("tests/testthat")
 ```
 
 Integration tests are skipped automatically when Docker is unavailable and `QDRANT_HOST` is not set, so the unit-test suite always works offline.

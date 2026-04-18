@@ -1,6 +1,6 @@
 test_that("retrieve_point calls GET /collections/{name}/points/{id}", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$retrieve_point("my_col", 42)
 
   expect_equal(mock$last_call$method, "GET")
@@ -10,7 +10,7 @@ test_that("retrieve_point calls GET /collections/{name}/points/{id}", {
 
 test_that("retrieve_points calls POST /collections/{name}/points", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$retrieve_points("my_col", ids = c(1, 2, 3))
 
   expect_equal(mock$last_call$method, "POST")
@@ -21,7 +21,7 @@ test_that("retrieve_points calls POST /collections/{name}/points", {
 
 test_that("retrieve_points omits shard_key when NULL", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$retrieve_points("my_col", ids = c(1))
 
   expect_false("shard_key" %in% names(mock$last_call$body))
@@ -29,7 +29,7 @@ test_that("retrieve_points omits shard_key when NULL", {
 
 test_that("upsert_points builds correct body", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$upsert_points("my_col",
     ids      = c(1, 2),
     vectors  = list(c(0.1, 0.2, 0.3), c(0.4, 0.5, 0.6)),
@@ -48,13 +48,13 @@ test_that("upsert_points builds correct body", {
 })
 
 test_that("upsert_points errors when ids is empty", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(pts$upsert_points("my_col", ids = c()),
                "ids must be provided")
 })
 
 test_that("upsert_points errors when both vectors and payloads are NULL", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(
     pts$upsert_points("my_col", ids = c(1)),
     "At least one of vectors or payloads"
@@ -62,7 +62,7 @@ test_that("upsert_points errors when both vectors and payloads are NULL", {
 })
 
 test_that("upsert_points errors when vector length mismatches ids", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(
     pts$upsert_points("my_col", ids = c(1, 2),
                       vectors = list(c(0.1, 0.2))),
@@ -72,7 +72,7 @@ test_that("upsert_points errors when vector length mismatches ids", {
 
 test_that("upsert_points works with vectors only", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$upsert_points("my_col", ids = c(1),
                     vectors = list(c(0.1, 0.2)))
 
@@ -82,7 +82,7 @@ test_that("upsert_points works with vectors only", {
 
 test_that("upsert_points passes ordering as query param", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$upsert_points("my_col", ids = c(1),
                     vectors = list(c(0.1)), ordering = "strong")
 
@@ -91,7 +91,7 @@ test_that("upsert_points passes ordering as query param", {
 
 test_that("delete_points_by_id sends correct body", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$delete_points_by_id("my_col", ids = c(1, 2, 3))
 
   expect_equal(mock$last_call$method, "POST")
@@ -101,14 +101,14 @@ test_that("delete_points_by_id sends correct body", {
 })
 
 test_that("delete_points_by_id errors on empty ids", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(pts$delete_points_by_id("my_col", ids = c()),
                "ids must be provided")
 })
 
 test_that("delete_points_by_filter sends filter body", {
   mock   <- MockQdrantClient$new()
-  pts    <- Points$new(mock)
+  pts    <- mock_new(Points, mock)
   filter <- list(must = list(list(key = "color",
                                    match = list(value = "red"))))
   pts$delete_points_by_filter("my_col", filter = filter)
@@ -118,13 +118,13 @@ test_that("delete_points_by_filter sends filter body", {
 })
 
 test_that("delete_points_by_filter errors when filter is not a list", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(pts$delete_points_by_filter("my_col", filter = "bad"))
 })
 
 test_that("update_vectors calls PUT /points/vectors", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$update_vectors("my_col",
     points = list(list(id = 1, vector = c(0.1, 0.2))))
 
@@ -135,7 +135,7 @@ test_that("update_vectors calls PUT /points/vectors", {
 
 test_that("delete_vectors calls DELETE /points/vectors", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$delete_vectors("my_col", ids = c(1, 2),
                      vector_names = c("image", "text"))
 
@@ -146,7 +146,7 @@ test_that("delete_vectors calls DELETE /points/vectors", {
 
 test_that("set_payload calls POST /points/payload", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$set_payload("my_col", payload = list(color = "green"), ids = c(1))
 
   expect_equal(mock$last_call$method, "POST")
@@ -157,14 +157,14 @@ test_that("set_payload calls POST /points/payload", {
 })
 
 test_that("set_payload errors when neither ids nor filter provided", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(pts$set_payload("my_col", payload = list(x = 1)),
                "One of ids or filter")
 })
 
 test_that("overwrite_payload calls PUT /points/payload", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$overwrite_payload("my_col", payload = list(x = 1), ids = c(1))
 
   expect_equal(mock$last_call$method, "PUT")
@@ -172,7 +172,7 @@ test_that("overwrite_payload calls PUT /points/payload", {
 
 test_that("delete_payload calls correct endpoint", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$delete_payload("my_col", keys = c("color", "size"), ids = c(1))
 
   expect_equal(mock$last_call$url,
@@ -182,7 +182,7 @@ test_that("delete_payload calls correct endpoint", {
 
 test_that("clear_payload calls correct endpoint", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$clear_payload("my_col", ids = c(1, 2))
 
   expect_equal(mock$last_call$url,
@@ -191,13 +191,13 @@ test_that("clear_payload calls correct endpoint", {
 })
 
 test_that("clear_payload errors when neither ids nor filter provided", {
-  pts <- Points$new(MockQdrantClient$new())
+  pts <- mock_new(Points, MockQdrantClient$new())
   expect_error(pts$clear_payload("my_col"), "One of ids or filter")
 })
 
 test_that("scroll_points calls POST /points/scroll with defaults", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$scroll_points("my_col")
 
   expect_equal(mock$last_call$method, "POST")
@@ -210,7 +210,7 @@ test_that("scroll_points calls POST /points/scroll with defaults", {
 
 test_that("scroll_points includes filter when provided", {
   mock   <- MockQdrantClient$new()
-  pts    <- Points$new(mock)
+  pts    <- mock_new(Points, mock)
   filter <- list(must = list(list(key = "x", match = list(value = 1))))
   pts$scroll_points("my_col", filter = filter)
 
@@ -219,7 +219,7 @@ test_that("scroll_points includes filter when provided", {
 
 test_that("count_points calls POST /points/count", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$count_points("my_col")
 
   expect_equal(mock$last_call$method, "POST")
@@ -230,7 +230,7 @@ test_that("count_points calls POST /points/count", {
 
 test_that("count_points passes filter", {
   mock   <- MockQdrantClient$new()
-  pts    <- Points$new(mock)
+  pts    <- mock_new(Points, mock)
   filter <- list(must = list(list(key = "x", range = list(gte = 5))))
   pts$count_points("my_col", filter = filter)
 
@@ -239,7 +239,7 @@ test_that("count_points passes filter", {
 
 test_that("payload_field_facets calls POST /points/facets", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   pts$payload_field_facets("my_col", key = "category")
 
   expect_equal(mock$last_call$method, "POST")
@@ -251,7 +251,7 @@ test_that("payload_field_facets calls POST /points/facets", {
 
 test_that("batch_update_points calls POST /points/batch", {
   mock <- MockQdrantClient$new()
-  pts  <- Points$new(mock)
+  pts  <- mock_new(Points, mock)
   ops  <- list(list(upsert = list(points = list(list(id = 1,
                                                      vector = c(0.1))))))
   pts$batch_update_points("my_col", operations = ops)

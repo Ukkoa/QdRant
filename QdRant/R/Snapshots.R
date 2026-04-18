@@ -10,15 +10,15 @@
 #' @export
 Snapshots <- R6::R6Class("Snapshots",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     # -------------------------------------------------------------------------
@@ -38,9 +38,9 @@ Snapshots <- R6::R6Class("Snapshots",
     #' }
     list_collection_snapshots = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(),
+      url <- paste0(private$.base_url(),
                     "/collections/", collection_name, "/snapshots")
-      self$client$make_request("GET", url)
+      private$.req("GET", url)
     },
 
     #' @description
@@ -56,9 +56,9 @@ Snapshots <- R6::R6Class("Snapshots",
     #' }
     create_collection_snapshot = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(),
+      url <- paste0(private$.base_url(),
                     "/collections/", collection_name, "/snapshots")
-      self$client$make_request("POST", url)
+      private$.req("POST", url)
     },
 
     #' @description
@@ -81,11 +81,11 @@ Snapshots <- R6::R6Class("Snapshots",
                                                 priority = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.character(location), nzchar(location))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/snapshots/recover")
       body <- list(location = location)
       if (!is.null(priority)) body$priority <- priority
-      self$client$make_request("PUT", url, body)
+      private$.req("PUT", url, body)
     },
 
     #' @description
@@ -103,10 +103,10 @@ Snapshots <- R6::R6Class("Snapshots",
     delete_collection_snapshot = function(collection_name, snapshot_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.character(snapshot_name), nzchar(snapshot_name))
-      url <- paste0(self$client$get_base_url(),
+      url <- paste0(private$.base_url(),
                     "/collections/", collection_name,
                     "/snapshots/", snapshot_name)
-      self$client$make_request("DELETE", url)
+      private$.req("DELETE", url)
     },
 
     # -------------------------------------------------------------------------
@@ -123,8 +123,8 @@ Snapshots <- R6::R6Class("Snapshots",
     #'   snapshots$list_full_snapshots()
     #' }
     list_full_snapshots = function() {
-      url <- paste0(self$client$get_base_url(), "/snapshots")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/snapshots")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -137,8 +137,8 @@ Snapshots <- R6::R6Class("Snapshots",
     #'   snapshots$create_full_snapshot()
     #' }
     create_full_snapshot = function() {
-      url <- paste0(self$client$get_base_url(), "/snapshots")
-      self$client$make_request("POST", url)
+      url <- paste0(private$.base_url(), "/snapshots")
+      private$.req("POST", url)
     },
 
     #' @description
@@ -154,8 +154,8 @@ Snapshots <- R6::R6Class("Snapshots",
     #' }
     delete_full_snapshot = function(snapshot_name) {
       stopifnot(is.character(snapshot_name), nzchar(snapshot_name))
-      url <- paste0(self$client$get_base_url(), "/snapshots/", snapshot_name)
-      self$client$make_request("DELETE", url)
+      url <- paste0(private$.base_url(), "/snapshots/", snapshot_name)
+      private$.req("DELETE", url)
     }
   )
 )

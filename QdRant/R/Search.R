@@ -13,15 +13,15 @@
 #' @export
 Search <- R6::R6Class("Search",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     # -------------------------------------------------------------------------
@@ -70,7 +70,7 @@ Search <- R6::R6Class("Search",
                             lookup_from = NULL, shard_key = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(query))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/query")
       body <- list(query = query, limit = limit, offset = offset,
                    with_vector = with_vector, with_payload = with_payload)
@@ -81,7 +81,7 @@ Search <- R6::R6Class("Search",
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
       if (!is.null(lookup_from))     body$lookup_from     <- lookup_from
       if (!is.null(shard_key))       body$shard_key       <- shard_key
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -103,10 +103,10 @@ Search <- R6::R6Class("Search",
     query_points_batch = function(collection_name, searches) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(searches), length(searches) > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/query/batch")
       body <- list(searches = searches)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -137,7 +137,7 @@ Search <- R6::R6Class("Search",
                                    score_threshold = NULL, using = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(query), is.character(group_by), nzchar(group_by))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/query/groups")
       body <- list(query = query, group_by = group_by,
                    group_size = group_size, limit = limit,
@@ -145,7 +145,7 @@ Search <- R6::R6Class("Search",
       if (!is.null(filter))          body$filter          <- filter
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
       if (!is.null(using))           body$using           <- using
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     # -------------------------------------------------------------------------
@@ -180,14 +180,14 @@ Search <- R6::R6Class("Search",
                              with_payload = TRUE, with_vector = FALSE) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.numeric(vector))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/search")
       body <- list(vector = vector, limit = limit, offset = offset,
                    with_payload = with_payload, with_vector = with_vector)
       if (!is.null(filter))          body$filter          <- filter
       if (!is.null(params))          body$params          <- params
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -209,10 +209,10 @@ Search <- R6::R6Class("Search",
     search_batch_points = function(collection_name, searches) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(searches), length(searches) > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/search/batch")
       body <- list(searches = searches)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -241,14 +241,14 @@ Search <- R6::R6Class("Search",
                                    score_threshold = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.numeric(vector), is.character(group_by), nzchar(group_by))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/search/groups")
       body <- list(vector = vector, group_by = group_by,
                    group_size = group_size, limit = limit,
                    with_payload = with_payload, with_vector = with_vector)
       if (!is.null(filter))          body$filter          <- filter
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     # -------------------------------------------------------------------------
@@ -288,7 +288,7 @@ Search <- R6::R6Class("Search",
                                 with_payload = TRUE, with_vector = FALSE) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(positive), length(positive) > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/recommend")
       body <- list(positive = positive, limit = limit, offset = offset,
                    with_payload = with_payload, with_vector = with_vector)
@@ -299,7 +299,7 @@ Search <- R6::R6Class("Search",
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
       if (!is.null(using))           body$using           <- using
       if (!is.null(lookup_from))     body$lookup_from     <- lookup_from
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -320,10 +320,10 @@ Search <- R6::R6Class("Search",
     recommend_batch = function(collection_name, searches) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(searches), length(searches) > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/recommend/batch")
       body <- list(searches = searches)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -354,7 +354,7 @@ Search <- R6::R6Class("Search",
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(positive), length(positive) > 0,
                 is.character(group_by), nzchar(group_by))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/recommend/groups")
       body <- list(positive = positive, group_by = group_by,
                    group_size = group_size, limit = limit,
@@ -362,7 +362,7 @@ Search <- R6::R6Class("Search",
       if (!is.null(negative))        body$negative        <- negative
       if (!is.null(filter))          body$filter          <- filter
       if (!is.null(score_threshold)) body$score_threshold <- score_threshold
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     # -------------------------------------------------------------------------
@@ -401,7 +401,7 @@ Search <- R6::R6Class("Search",
                                lookup_from = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(context))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/discover")
       body <- list(target = target, context = context, limit = limit,
                    offset = offset, with_payload = with_payload,
@@ -410,7 +410,7 @@ Search <- R6::R6Class("Search",
       if (!is.null(params))      body$params      <- params
       if (!is.null(using))       body$using       <- using
       if (!is.null(lookup_from)) body$lookup_from <- lookup_from
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -430,10 +430,10 @@ Search <- R6::R6Class("Search",
     discover_batch = function(collection_name, searches) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(searches), length(searches) > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/discover/batch")
       body <- list(searches = searches)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     }
   )
 )

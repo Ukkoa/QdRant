@@ -114,6 +114,14 @@ local({
   )
 })
 
+# Construct a sub-class from a MockQdrantClient.
+mock_new <- function(Class, mock) {
+  Class$new(
+    req_fn      = function(...) mock$make_request(...),
+    base_url_fn = function()    mock$get_base_url()
+  )
+}
+
 # ---------------------------------------------------------------------------
 # Integration-test helpers
 # ---------------------------------------------------------------------------

@@ -10,15 +10,15 @@
 #' @export
 Indexes <- R6::R6Class("Indexes",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     #' @description
@@ -51,12 +51,12 @@ Indexes <- R6::R6Class("Indexes",
                                     field_schema = NULL, ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.character(field_name), nzchar(field_name))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/index")
       body <- list(field_name = field_name)
       if (!is.null(field_schema)) body$field_schema <- field_schema
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("PUT", url, body, query = query)
+      private$.req("PUT", url, body, query = query)
     },
 
     #' @description
@@ -76,10 +76,10 @@ Indexes <- R6::R6Class("Indexes",
                                     ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.character(field_name), nzchar(field_name))
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/index/", field_name)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("DELETE", url, query = query)
+      private$.req("DELETE", url, query = query)
     }
   )
 )

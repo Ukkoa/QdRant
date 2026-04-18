@@ -10,15 +10,15 @@
 #' @export
 Points <- R6::R6Class("Points",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     # -------------------------------------------------------------------------
@@ -42,10 +42,10 @@ Points <- R6::R6Class("Points",
     retrieve_point = function(collection_name, id,
                               with_payload = TRUE, with_vector = FALSE) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/", id)
       query <- list(with_payload = with_payload, with_vector = with_vector)
-      self$client$make_request("GET", url, query = query)
+      private$.req("GET", url, query = query)
     },
 
     #' @description
@@ -67,11 +67,11 @@ Points <- R6::R6Class("Points",
                                with_payload = TRUE, with_vector = FALSE,
                                shard_key = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points")
       body <- list(ids = as.list(ids), with_payload = with_payload, with_vector = with_vector)
       if (!is.null(shard_key)) body$shard_key <- shard_key
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -98,7 +98,7 @@ Points <- R6::R6Class("Points",
                              shard_key = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.numeric(limit), limit > 0)
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/scroll")
       body <- list(limit = limit, with_payload = with_payload,
                    with_vector = with_vector)
@@ -106,7 +106,7 @@ Points <- R6::R6Class("Points",
       if (!is.null(filter))    body$filter    <- filter
       if (!is.null(order_by))  body$order_by  <- order_by
       if (!is.null(shard_key)) body$shard_key <- shard_key
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -124,11 +124,11 @@ Points <- R6::R6Class("Points",
     #' }
     count_points = function(collection_name, filter = NULL, exact = TRUE) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/count")
       body <- list(exact = exact)
       if (!is.null(filter)) body$filter <- filter
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -149,11 +149,11 @@ Points <- R6::R6Class("Points",
                                     filter = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.character(key), nzchar(key))
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/facets")
       body <- list(key = key, limit = limit)
       if (!is.null(filter)) body$filter <- filter
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     # -------------------------------------------------------------------------
@@ -171,6 +171,7 @@ Points <- R6::R6Class("Points",
     #' @param vectors (Optional) List of numeric vectors, one per ID.
     #' @param payloads (Optional) List of named lists, one per ID.
     #' @param ordering (Optional) Character. Write ordering guarantee.
+    #' @param wait Logical. Wait for operation to complete (default TRUE).
     #'
     #' @return API response list.
     #'
@@ -206,12 +207,12 @@ Points <- R6::R6Class("Points",
         pt
       })
 
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points")
       body  <- list(points = pts)
       query <- list(wait = tolower(as.character(wait)))
       if (!is.null(ordering)) query$ordering <- ordering
-      self$client$make_request("PUT", url, body, query = query)
+      private$.req("PUT", url, body, query = query)
     },
 
     #' @description
@@ -232,11 +233,11 @@ Points <- R6::R6Class("Points",
       if (is.null(ids) || length(ids) == 0) {
         stop("ids must be provided and cannot be empty.")
       }
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/delete")
       body  <- list(points = as.list(ids))
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     },
 
     #' @description
@@ -260,11 +261,11 @@ Points <- R6::R6Class("Points",
                                        ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(filter))
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/delete")
       body  <- list(filter = filter)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     },
 
     # -------------------------------------------------------------------------
@@ -290,11 +291,11 @@ Points <- R6::R6Class("Points",
     update_vectors = function(collection_name, points, ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(points), length(points) > 0)
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/vectors")
       body  <- list(points = points)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("PUT", url, body, query = query)
+      private$.req("PUT", url, body, query = query)
     },
 
     #' @description
@@ -316,11 +317,11 @@ Points <- R6::R6Class("Points",
                               ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 length(ids) > 0, is.character(vector_names))
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/vectors")
       body  <- list(points = as.list(ids), vector = vector_names)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("DELETE", url, body, query = query)
+      private$.req("DELETE", url, body, query = query)
     },
 
     # -------------------------------------------------------------------------
@@ -352,13 +353,13 @@ Points <- R6::R6Class("Points",
       if (is.null(ids) && is.null(filter)) {
         stop("One of ids or filter must be provided.")
       }
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/payload")
       body <- list(payload = payload)
       if (!is.null(ids))    body$points <- as.list(ids)
       if (!is.null(filter)) body$filter <- filter
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     },
 
     #' @description
@@ -385,13 +386,13 @@ Points <- R6::R6Class("Points",
       if (is.null(ids) && is.null(filter)) {
         stop("One of ids or filter must be provided.")
       }
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/payload")
       body <- list(payload = payload)
       if (!is.null(ids))    body$points <- as.list(ids)
       if (!is.null(filter)) body$filter <- filter
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("PUT", url, body, query = query)
+      private$.req("PUT", url, body, query = query)
     },
 
     #' @description
@@ -417,13 +418,13 @@ Points <- R6::R6Class("Points",
       if (is.null(ids) && is.null(filter)) {
         stop("One of ids or filter must be provided.")
       }
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/payload/delete")
       body <- list(keys = as.list(keys))
       if (!is.null(ids))    body$points <- as.list(ids)
       if (!is.null(filter)) body$filter <- filter
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     },
 
     #' @description
@@ -447,13 +448,13 @@ Points <- R6::R6Class("Points",
       if (is.null(ids) && is.null(filter)) {
         stop("One of ids or filter must be provided.")
       }
-      url  <- paste0(self$client$get_base_url(),
+      url  <- paste0(private$.base_url(),
                      "/collections/", collection_name, "/points/payload/clear")
       body <- list()
       if (!is.null(ids))    body$points <- as.list(ids)
       if (!is.null(filter)) body$filter <- filter
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     },
 
     # -------------------------------------------------------------------------
@@ -483,11 +484,11 @@ Points <- R6::R6Class("Points",
                                    ordering = NULL) {
       stopifnot(is.character(collection_name), nzchar(collection_name),
                 is.list(operations), length(operations) > 0)
-      url   <- paste0(self$client$get_base_url(),
+      url   <- paste0(private$.base_url(),
                       "/collections/", collection_name, "/points/batch")
       body  <- list(operations = operations)
       query <- if (!is.null(ordering)) list(ordering = ordering) else NULL
-      self$client$make_request("POST", url, body, query = query)
+      private$.req("POST", url, body, query = query)
     }
   )
 )

@@ -2,20 +2,30 @@
 #' QdrantClient
 #'
 #' @description
-#' HTTP client for the Qdrant vector database REST API. All higher-level classes
-#' (Collections, Points, Search, etc.) hold a reference to an instance of this class.
+#' Main entry point for the Qdrant REST API. Instantiating this class gives you
+#' access to all API namespaces as sub-objects:
+#' \code{$collections}, \code{$points}, \code{$search}, \code{$indexes},
+#' \code{$aliases}, \code{$snapshots}, and \code{$service}.
 #'
-#' @field host Hostname or IP of the Qdrant instance (default: \code{"localhost"}).
-#' @field port Port number (default: \code{6333}).
-#' @field api_key API key for authentication (optional, for Qdrant Cloud).
+#' @field collections A \code{Collections} instance.
+#' @field points A \code{Points} instance.
+#' @field search A \code{Search} instance.
+#' @field indexes An \code{Indexes} instance.
+#' @field aliases An \code{Aliases} instance.
+#' @field snapshots A \code{Snapshots} instance.
+#' @field service A \code{Services} instance.
 #'
 #' @export
 QdrantClient <- R6::R6Class("QdrantClient",
   cloneable = FALSE,
   public = list(
-    host    = NULL,
-    port    = NULL,
-    api_key = NULL,
+    collections = NULL,
+    points      = NULL,
+    search      = NULL,
+    indexes     = NULL,
+    aliases     = NULL,
+    snapshots   = NULL,
+    service     = NULL,
 
     #' @description
     #' Create a new QdrantClient.
@@ -37,36 +47,35 @@ QdrantClient <- R6::R6Class("QdrantClient",
     #'   )
     #' }
     initialize = function(host = "localhost", port = 6333, api_key = NULL) {
-      self$host    <- host
-      self$port    <- port
-      self$api_key <- api_key
-    },
+      private$host    <- host
+      private$port    <- port
+      private$api_key <- api_key
 
-    #' @description
-    #' Build the base URL for the Qdrant instance.
-    #'
-    #' Uses \code{http://} for localhost/loopback and \code{https://} for all
-    #' other hosts.
-    #'
-    #' @return A character string such as \code{"https://host:6333"}.
+      req      <- function(...) private$make_request(...)
+      base_url <- function()    private$get_base_url()
+
+      self$collections <- Collections$new(req, base_url)
+      self$points      <- Points$new(req, base_url)
+      self$search      <- Search$new(req, base_url)
+      self$indexes     <- Indexes$new(req, base_url)
+      self$aliases     <- Aliases$new(req, base_url)
+      self$snapshots   <- Snapshots$new(req, base_url)
+      self$service     <- Services$new(req, base_url)
+    }
+  ),
+  private = list(
+    host    = NULL,
+    port    = NULL,
+    api_key = NULL,
+
     get_base_url = function() {
-      scheme <- if (self$host %in% c("localhost", "127.0.0.1", "::1")) "http" else "https"
-      paste0(scheme, "://", self$host, ":", self$port)
+      scheme <- if (private$host %in% c("localhost", "127.0.0.1", "::1")) "http" else "https"
+      paste0(scheme, "://", private$host, ":", private$port)
     },
 
-    #' @description
-    #' Make an HTTP request to the Qdrant API.
-    #'
-    #' @param method HTTP method: \code{"GET"}, \code{"POST"}, \code{"PUT"},
-    #'   \code{"PATCH"}, or \code{"DELETE"}.
-    #' @param url Full URL for the request.
-    #' @param body Named list to serialise as JSON body (optional).
-    #' @param query Named list of URL query parameters (optional).
-    #'
-    #' @return Parsed response content (R list).
     make_request = function(method, url, body = NULL, query = NULL) {
-      headers <- if (!is.null(self$api_key)) {
-        httr::add_headers(`api-key` = self$api_key)
+      headers <- if (!is.null(private$api_key)) {
+        httr::add_headers(`api-key` = private$api_key)
       } else {
         NULL
       }

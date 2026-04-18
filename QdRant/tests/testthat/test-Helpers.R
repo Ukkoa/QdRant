@@ -204,7 +204,7 @@ test_that("prefetch includes filter when provided", {
 
 test_that("helpers compose into a search_points call", {
   mock <- MockQdrantClient$new()
-  srch <- Search$new(mock)
+  srch <- mock_new(Search, mock)
 
   srch$search_points("my_col",
     vector = c(0.1, 0.2, 0.3),
@@ -222,7 +222,7 @@ test_that("helpers compose into a search_points call", {
 
 test_that("helpers compose into a query_points call with prefetch", {
   mock <- MockQdrantClient$new()
-  srch <- Search$new(mock)
+  srch <- mock_new(Search, mock)
 
   srch$query_points("my_col",
     query    = query_fusion("rrf"),

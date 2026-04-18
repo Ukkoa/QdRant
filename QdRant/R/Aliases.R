@@ -10,15 +10,15 @@
 #' @export
 Aliases <- R6::R6Class("Aliases",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     #' @description
@@ -62,9 +62,9 @@ Aliases <- R6::R6Class("Aliases",
     #' }
     update_aliases = function(actions) {
       stopifnot(is.list(actions), length(actions) > 0)
-      url  <- paste0(self$client$get_base_url(), "/collections/aliases")
+      url  <- paste0(private$.base_url(), "/collections/aliases")
       body <- list(actions = actions)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -77,8 +77,8 @@ Aliases <- R6::R6Class("Aliases",
     #'   aliases$list_all_aliases()
     #' }
     list_all_aliases = function() {
-      url <- paste0(self$client$get_base_url(), "/aliases")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/aliases")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -94,9 +94,9 @@ Aliases <- R6::R6Class("Aliases",
     #' }
     list_collection_aliases = function(collection_name) {
       stopifnot(is.character(collection_name), nzchar(collection_name))
-      url <- paste0(self$client$get_base_url(),
+      url <- paste0(private$.base_url(),
                     "/collections/", collection_name, "/aliases")
-      self$client$make_request("GET", url)
+      private$.req("GET", url)
     },
 
     # -------------------------------------------------------------------------

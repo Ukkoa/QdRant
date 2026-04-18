@@ -1,6 +1,6 @@
 test_that("update_aliases calls POST /collections/aliases", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$update_aliases(actions = list(
     list(create_alias = list(collection_name = "col_v2",
                              alias_name      = "col"))
@@ -12,13 +12,13 @@ test_that("update_aliases calls POST /collections/aliases", {
 })
 
 test_that("update_aliases errors on empty actions", {
-  als <- Aliases$new(MockQdrantClient$new())
+  als <- mock_new(Aliases, MockQdrantClient$new())
   expect_error(als$update_aliases(actions = list()))
 })
 
 test_that("list_all_aliases calls GET /aliases", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$list_all_aliases()
 
   expect_equal(mock$last_call$method, "GET")
@@ -27,7 +27,7 @@ test_that("list_all_aliases calls GET /aliases", {
 
 test_that("list_collection_aliases calls GET /collections/{name}/aliases", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$list_collection_aliases("my_col")
 
   expect_equal(mock$last_call$method, "GET")
@@ -37,7 +37,7 @@ test_that("list_collection_aliases calls GET /collections/{name}/aliases", {
 
 test_that("create_alias wraps update_aliases correctly", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$create_alias("col_v2", "col")
 
   action <- mock$last_call$body$actions[[1]]
@@ -47,7 +47,7 @@ test_that("create_alias wraps update_aliases correctly", {
 
 test_that("rename_alias wraps update_aliases correctly", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$rename_alias("col_old", "col_archived")
 
   action <- mock$last_call$body$actions[[1]]
@@ -57,7 +57,7 @@ test_that("rename_alias wraps update_aliases correctly", {
 
 test_that("delete_alias wraps update_aliases correctly", {
   mock <- MockQdrantClient$new()
-  als  <- Aliases$new(mock)
+  als  <- mock_new(Aliases, mock)
   als$delete_alias("col")
 
   action <- mock$last_call$body$actions[[1]]
@@ -65,11 +65,11 @@ test_that("delete_alias wraps update_aliases correctly", {
 })
 
 test_that("create_alias errors on empty alias_name", {
-  als <- Aliases$new(MockQdrantClient$new())
+  als <- mock_new(Aliases, MockQdrantClient$new())
   expect_error(als$create_alias("col", ""))
 })
 
 test_that("rename_alias errors on empty old_alias_name", {
-  als <- Aliases$new(MockQdrantClient$new())
+  als <- mock_new(Aliases, MockQdrantClient$new())
   expect_error(als$rename_alias("", "new"))
 })

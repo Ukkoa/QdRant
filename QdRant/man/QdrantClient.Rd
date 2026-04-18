@@ -4,29 +4,45 @@
 \alias{QdrantClient}
 \title{QdrantClient}
 \description{
-This class provides methods to interact with a Qdrant instance.
-It handles API requests to manage vectors, collections, and other resources.
+Main entry point for the Qdrant REST API. Instantiating this class gives you
+access to all API namespaces as sub-objects:
+\code{$collections}, \code{$points}, \code{$search}, \code{$indexes},
+\code{$aliases}, \code{$snapshots}, and \code{$service}.
 }
 \examples{
 
 ## ------------------------------------------------
-## Method `QdrantClient$make_request`
+## Method `QdrantClient$new`
 ## ------------------------------------------------
 
 \dontrun{
+  # Local instance
   client <- QdrantClient$new()
-  base_url <- client$get_base_url()
-  response <- client$make_request("GET", paste0(base_url, "/collections"))
+
+  # Qdrant Cloud
+  client <- QdrantClient$new(
+    host    = "xyz.us-east-1-0.aws.cloud.qdrant.io",
+    port    = 6333,
+    api_key = Sys.getenv("QDRANT_API_KEY")
+  )
 }
 }
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{host}}{The host URL for the Qdrant instance (default: "localhost").}
+\item{\code{collections}}{A \code{Collections} instance.}
 
-\item{\code{port}}{The port on which Qdrant is running (default: 6333).}
+\item{\code{points}}{A \code{Points} instance.}
 
-\item{\code{api_key}}{The API key for authentication (optional).}
+\item{\code{search}}{A \code{Search} instance.}
+
+\item{\code{indexes}}{An \code{Indexes} instance.}
+
+\item{\code{aliases}}{An \code{Aliases} instance.}
+
+\item{\code{snapshots}}{A \code{Snapshots} instance.}
+
+\item{\code{service}}{A \code{Services} instance.}
 }
 \if{html}{\out{</div>}}
 }
@@ -34,16 +50,13 @@ It handles API requests to manage vectors, collections, and other resources.
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-QdrantClient-new}{\code{QdrantClient$new()}}
-\item \href{#method-QdrantClient-get_base_url}{\code{QdrantClient$get_base_url()}}
-\item \href{#method-QdrantClient-make_request}{\code{QdrantClient$make_request()}}
-\item \href{#method-QdrantClient-clone}{\code{QdrantClient$clone()}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-QdrantClient-new"></a>}}
 \if{latex}{\out{\hypertarget{method-QdrantClient-new}{}}}
 \subsection{Method \code{new()}}{
-Initialize the Qdrant client.
+Create a new QdrantClient.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{QdrantClient$new(host = "localhost", port = 6333, api_key = NULL)}\if{html}{\out{</div>}}
 }
@@ -51,79 +64,31 @@ Initialize the Qdrant client.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{host}}{The host URL for the Qdrant instance.}
+\item{\code{host}}{Hostname or IP of the Qdrant instance.}
 
-\item{\code{port}}{The port number on which Qdrant is running.}
+\item{\code{port}}{Port number.}
 
-\item{\code{api_key}}{API key for authentication (optional).}
+\item{\code{api_key}}{API key for Qdrant Cloud (optional).}
 }
 \if{html}{\out{</div>}}
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-QdrantClient-get_base_url"></a>}}
-\if{latex}{\out{\hypertarget{method-QdrantClient-get_base_url}{}}}
-\subsection{Method \code{get_base_url()}}{
-Get the base URL of the Qdrant instance.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{QdrantClient$get_base_url()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-A character string with the full base URL.
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-QdrantClient-make_request"></a>}}
-\if{latex}{\out{\hypertarget{method-QdrantClient-make_request}{}}}
-\subsection{Method \code{make_request()}}{
-Make an HTTP request to the Qdrant API.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{QdrantClient$make_request(method, url, body = NULL)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{method}}{HTTP method to use (GET, POST, PUT, DELETE).}
-
-\item{\code{url}}{The full URL for the API request.}
-
-\item{\code{body}}{(Optional) The request body for POST or PUT methods.}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Parsed response content from the API.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{\dontrun{
+  # Local instance
   client <- QdrantClient$new()
-  base_url <- client$get_base_url()
-  response <- client$make_request("GET", paste0(base_url, "/collections"))
+
+  # Qdrant Cloud
+  client <- QdrantClient$new(
+    host    = "xyz.us-east-1-0.aws.cloud.qdrant.io",
+    port    = 6333,
+    api_key = Sys.getenv("QDRANT_API_KEY")
+  )
 }
 }
 \if{html}{\out{</div>}}
 
 }
 
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-QdrantClient-clone"></a>}}
-\if{latex}{\out{\hypertarget{method-QdrantClient-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{QdrantClient$clone(deep = FALSE)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
 }
 }

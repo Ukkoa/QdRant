@@ -10,15 +10,15 @@
 #' @export
 Services <- R6::R6Class("Services",
   cloneable = FALSE,
+  private = list(.req = NULL, .base_url = NULL),
   public = list(
-    client = NULL,
 
-    #' @description
-    #' Initialize with a \code{QdrantClient}.
-    #'
-    #' @param client A \code{QdrantClient} instance.
-    initialize = function(client) {
-      self$client <- client
+    #' @description Initialize with closures provided by \code{QdrantClient}.
+    #' @param req_fn Function. Makes HTTP requests.
+    #' @param base_url_fn Function. Returns the base URL.
+    initialize = function(req_fn, base_url_fn) {
+      private$.req      <- req_fn
+      private$.base_url <- base_url_fn
     },
 
     #' @description
@@ -31,8 +31,8 @@ Services <- R6::R6Class("Services",
     #'   services$retrieve_instance_details()
     #' }
     retrieve_instance_details = function() {
-      url <- self$client$get_base_url()
-      self$client$make_request("GET", url)
+      url <- private$.base_url()
+      private$.req("GET", url)
     },
 
     #' @description
@@ -47,9 +47,9 @@ Services <- R6::R6Class("Services",
     #'   services$collect_telemetry_data()
     #' }
     collect_telemetry_data = function(anonymize = TRUE) {
-      url   <- paste0(self$client$get_base_url(), "/telemetry")
+      url   <- paste0(private$.base_url(), "/telemetry")
       query <- list(anonymize = tolower(as.character(anonymize)))
-      self$client$make_request("GET", url, query = query)
+      private$.req("GET", url, query = query)
     },
 
     #' @description
@@ -64,9 +64,9 @@ Services <- R6::R6Class("Services",
     #'   services$collect_prometheus_metrics()
     #' }
     collect_prometheus_metrics = function(anonymize = TRUE) {
-      url   <- paste0(self$client$get_base_url(), "/metrics")
+      url   <- paste0(private$.base_url(), "/metrics")
       query <- list(anonymize = tolower(as.character(anonymize)))
-      self$client$make_request("GET", url, query = query)
+      private$.req("GET", url, query = query)
     },
 
     #' @description
@@ -79,8 +79,8 @@ Services <- R6::R6Class("Services",
     #'   services$check_write_protection()
     #' }
     check_write_protection = function() {
-      url <- paste0(self$client$get_base_url(), "/locks")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/locks")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -95,9 +95,9 @@ Services <- R6::R6Class("Services",
     #'   services$set_write_protection(write = FALSE)
     #' }
     set_write_protection = function(write = TRUE) {
-      url  <- paste0(self$client$get_base_url(), "/locks")
+      url  <- paste0(private$.base_url(), "/locks")
       body <- list(write = write)
-      self$client$make_request("POST", url, body)
+      private$.req("POST", url, body)
     },
 
     #' @description
@@ -110,8 +110,8 @@ Services <- R6::R6Class("Services",
     #'   services$get_issues()
     #' }
     get_issues = function() {
-      url <- paste0(self$client$get_base_url(), "/issues")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/issues")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -124,8 +124,8 @@ Services <- R6::R6Class("Services",
     #'   services$clear_issues()
     #' }
     clear_issues = function() {
-      url <- paste0(self$client$get_base_url(), "/issues")
-      self$client$make_request("DELETE", url)
+      url <- paste0(private$.base_url(), "/issues")
+      private$.req("DELETE", url)
     },
 
     #' @description
@@ -138,8 +138,8 @@ Services <- R6::R6Class("Services",
     #'   services$kubernetes_health_check()
     #' }
     kubernetes_health_check = function() {
-      url <- paste0(self$client$get_base_url(), "/healthz")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/healthz")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -152,8 +152,8 @@ Services <- R6::R6Class("Services",
     #'   services$kubernetes_liveness_probe()
     #' }
     kubernetes_liveness_probe = function() {
-      url <- paste0(self$client$get_base_url(), "/livez")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/livez")
+      private$.req("GET", url)
     },
 
     #' @description
@@ -166,8 +166,8 @@ Services <- R6::R6Class("Services",
     #'   services$kubernetes_readiness_probe()
     #' }
     kubernetes_readiness_probe = function() {
-      url <- paste0(self$client$get_base_url(), "/readyz")
-      self$client$make_request("GET", url)
+      url <- paste0(private$.base_url(), "/readyz")
+      private$.req("GET", url)
     }
   )
 )
